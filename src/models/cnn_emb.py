@@ -42,12 +42,13 @@ class CNNEmb(SLModel):
         self.has_fc = fc1_size > 0
         if self.has_fc:
             self.dropout_fc1 = nn.Dropout(fc_dropout) if fc_dropout != 1. else lambda x: x
+            self.bn_fc = nn.BatchNorm1d(fc1_size)
             self.fc_layer = nn.Linear(k * n2_filters, fc1_size)
-            self.fc1 = nn.Linear(fc1_size, 6)
+            self.fc_eval = nn.Linear(fc1_size, 6)
         else:
             self.fc_layer = None
-            self.fc1 = nn.Linear(k * n2_filters, 6)
-        self.dropout3 = nn.Dropout(fc_dropout) if fc_dropout != 1. else lambda x: x
+            self.fc_eval = nn.Linear(k * n2_filters, 6)
+        self.dropout_fc_eval = nn.Dropout(fc_dropout) if fc_dropout != 1. else lambda x: x
 
     def cast_input_to_torch(self, x, volatile=False):
         # If a sample is too short extend it
@@ -84,7 +85,8 @@ class CNNEmb(SLModel):
         if self.has_fc:
             x = self.dropout_fc1(x)
             x = self.fc_layer(x)
+            x = self.bn_fc(x)
 
-        x = self.dropout3(x)
-        self.loss_in = self.fc1(x)  # B x 6
+        x = self.dropout_fc_eval(x)
+        self.loss_in = self.fc_eval(x)  # B x 6
         return F.sigmoid(self.loss_in)

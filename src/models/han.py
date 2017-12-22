@@ -2,12 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
+import numpy as np
 
 from pyjet.models import SLModel
 import pyjet.backend as J
 
 from models.modules import pad_torch_embedded_sequences, unpad_torch_embedded_sequences, pack_torch_embedded_sequences, \
-    unpack_torch_embedded_sequences
+    unpack_torch_embedded_sequences, pad_numpy_to_length
 
 
 def timedistributed_softmax(x):
@@ -169,11 +170,11 @@ class AttentionHierarchy(nn.Module):
         self.input_encoding_size = input_encoding_size
         self.hidden_size = hidden_size
         # We want to swap this out with other encoders
-        self.encoder = ConvEncoder(input_encoding_size, hidden_size, 3, encoder_dropout=encoder_dropout,
-                                   batchnorm=batchnorm)
-        self.encoder2 = ConvEncoder(hidden_size, hidden_size, 3, encoder_dropout=encoder_dropout,
-                                    batchnorm=batchnorm)
-        # self.encoder = GRUEncoder(input_encoding_size, hidden_size, encoder_dropout=encoder_dropout, batchnorm=batchnorm)
+        # self.encoder = ConvEncoder(input_encoding_size, hidden_size, 3, encoder_dropout=encoder_dropout,
+        #                            batchnorm=batchnorm)
+        # self.encoder2 = ConvEncoder(hidden_size, hidden_size, 3, encoder_dropout=encoder_dropout,
+        #                             batchnorm=batchnorm)
+        self.encoder = GRUEncoder(input_encoding_size, hidden_size, encoder_dropout=encoder_dropout, batchnorm=batchnorm)
         # self.encoder = LSTMEncoder(input_encoding_size, hidden_size,1 encoder_dropout=encoder_dropout,
         # batchnorm=batchnorm)
         self.att = AttentionBlock(hidden_size, hidden_size, batchnorm=batchnorm)
@@ -184,7 +185,7 @@ class AttentionHierarchy(nn.Module):
     def forward(self, x):
         # x input is B x Li x I
         x = self.encoder(x)  # B x Li x H
-        x = self.encoder2(x)
+        # x = self.encoder2(x)
         x = self.att(x)  # B x Li x H
         # Sum up each sequence
         return torch.stack([seq.sum(dim=0) for seq in x])  # B x H
@@ -208,6 +209,7 @@ class HAN(SLModel):
         self.has_fc = fc1_size > 0
         if self.has_fc:
             self.dropout_fc1 = nn.Dropout(fc_dropout) if fc_dropout != 1. else lambda x: x
+            self.bn_fc = nn.BatchNorm1d(fc1_size)
             self.fc1 = nn.Linear(n_hidden_sent, fc1_size)
             self.fc_eval = nn.Linear(fc1_size, 6)
         else:
@@ -219,7 +221,12 @@ class HAN(SLModel):
         # x comes in as a batch of list of embedded sentences
         # Need to turn it into a list of packed sequences
         # We make packs for each document
+        x = [[pad_numpy_to_length(sent, length=1) for sent in sample] for sample in x]
+        x = [(sample if len(sample) > 0 else [pad_numpy_to_length(np.empty((0, self.n_features)), 1)]) for sample in x]
         return [[Variable(J.Tensor(sent), volatile) for sent in sample] for sample in x]
+
+    def cast_target_to_torch(self, y, volatile=False):
+        return Variable(torch.from_numpy(y).cuda().float(), volatile=volatile)
 
     def forward(self, x):
         # x is B x Si x Wj x E
@@ -235,6 +242,7 @@ class HAN(SLModel):
         if self.has_fc:
             sent_outs = self.dropout_fc1(sent_outs)
             sent_outs = self.fc1(sent_outs)
+            sent_outs = self.bn_fc(sent_outs)
 
         sent_outs = self.dropout_fc_eval(sent_outs)
         self.loss_in = self.fc_eval(sent_outs)  # B x 6

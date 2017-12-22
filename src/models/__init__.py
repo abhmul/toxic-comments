@@ -23,7 +23,7 @@ def load_config(model_name):
 
 register_model("cnn-emb", CNNEmb)
 cnn_emb_config = {'num_features': 300, 'kernel_size': 3, 'pool_kernel_size': 2, 'pool_stride': 1, 'n1_filters': 512,
-                  'n2_filters': 256, 'k': 5, 'conv_dropout': 0.2, 'fc_dropout': 0.5, 'batchnorm': True}
+                  'n2_filters': 256, 'k': 5, 'conv_dropout': 0.2, 'fc1_size': 100, 'fc_dropout': 0.5, 'batchnorm': True}
 register_config("cnn-emb", cnn_emb_config)
 
 register_model("han", HAN)

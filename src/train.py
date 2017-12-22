@@ -21,24 +21,27 @@ parser.add_argument('-d', '--data', default="../processed_input",
 parser.add_argument('--train', action="store_true", help="Whether to run this script to train a model")
 parser.add_argument('--test', action="store_true", help="Whether to run this script to generate submissions")
 parser.add_argument('--batch_size', type=int, default=32, help="Batch size to use when running script")
+parser.add_argument('--test_batch_size', type=int, default=8, help="Batch size to use when running script")
 parser.add_argument('--split', type=float, default=0.1, help="Fraction of data to split into validation")
+parser.add_argument('--epochs', type=int, default=20, help="Number of epochs to train the model for")
+parser.add_argument('--plot', action="store", help="Number of epochs to train the model for")
 args = parser.parse_args()
 
 # Params
 MODEL_FUNC = load_model(args.model)
 CONFIG = load_config(args.model)
 
-EPOCHS = 20
+EPOCHS = args.epochs
 model_file_id = args.model + "_" + "_".join(k + "_" + str(v) for k, v in sorted(CONFIG.items()))
 MODEL_FILE = "../models/" + model_file_id + ".state"
 SUBMISSION_FILE = "../submissions/" + model_file_id + ".csv"
 LOG_FILE = "../logs/" + model_file_id + ".txt"
+PARSED_SENT = args.model[:3] == "han"
 
 
 def train(toxic_data):
     ids, dataset = toxic_data.load_train(mode="sup")
-    dataset = toxic_data.embed(dataset)
-
+    dataset = toxic_data.embed(dataset, PARSED_SENT)
 
     # Split the data
     train_data, val_data = dataset.validation_split(split=args.split, shuffle=True, seed=np.random.randint(2**32))
@@ -49,10 +52,12 @@ def train(toxic_data):
     # callbacks
     best_model = ModelCheckpoint(
         MODEL_FILE, monitor="loss", verbose=1, save_best_only=True)
+    callbacks = [best_model]
     # This will plot the losses while training
-    loss_plot_fpath = '../plots/loss_' + model_file_id + ".png"
-    loss_plotter = Plotter(monitor='loss', scale='log', save_to_file=loss_plot_fpath)
-    callbacks = [best_model, loss_plotter]
+    if args.plot:
+        loss_plot_fpath = '../plots/loss_' + model_file_id + ".png"
+        loss_plotter = Plotter(monitor='loss', scale='log', save_to_file=loss_plot_fpath)
+        callbacks.append(loss_plotter)
 
     # Initialize the model
     model = MODEL_FUNC(**CONFIG)
@@ -72,7 +77,6 @@ def train(toxic_data):
                 print(loss, file=logs)
 
 
-
 def save_submission(pred_ids, predictions):
     submid = pd.DataFrame({'id': pred_ids})
     submission = pd.concat([submid, pd.DataFrame(data=predictions, columns=LABEL_NAMES)], axis=1)
@@ -83,10 +87,10 @@ def test(toxic_data):
     # Create the paths for the data
     ids, test_data = toxic_data.load_test()
     assert not test_data.output_labels
-    test_data = toxic_data.embed(test_data)
+    test_data = toxic_data.embed(test_data, PARSED_SENT)
 
     # And create the generators
-    testgen = DatasetGenerator(test_data, batch_size=args.batch_size, shuffle=False)
+    testgen = DatasetGenerator(test_data, batch_size=args.test_batch_size, shuffle=False)
 
     # Initialize the model
     model = MODEL_FUNC(**CONFIG)

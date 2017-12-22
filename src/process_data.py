@@ -55,8 +55,11 @@ def load_data(vocab, path_to_data="../input/", parse_sentences=False):
         train_data = np.asarray([encoder.encode_words(tokens) for tokens in tokenize_texts(train_texts, sent_detector=None)],
                                 dtype=list)
     else:
-        train_data = np.asarray([[encoder.encode_words(tokens) for tokens in sent] for sent in
-                                tokenize_texts(train_texts, sent_detector=sent_detector)], dtype=list)
+        # Filter out the 0 lenght sentences
+        train_data = [[encoder.encode_words(tokens) for tokens in sent] for sent in
+                                tokenize_texts(train_texts, sent_detector=sent_detector)]
+        train_data = [sent for sent in train_data if len(sent) > 0]
+        train_data = np.asarray(train_data, dtype=list)
 
     # Load the test data
     path_to_test_csv = os.path.join(path_to_data, "test.csv")
@@ -71,8 +74,11 @@ def load_data(vocab, path_to_data="../input/", parse_sentences=False):
         test_data = np.asarray([encoder.encode_words(tokens) for tokens in tokenize_texts(test_texts, sent_detector=None)],
                                 dtype=list)
     else:
-        test_data = np.asarray([[encoder.encode_words(tokens) for tokens in sent] for sent in
-                                tokenize_texts(test_texts, sent_detector=sent_detector)], dtype=list)
+        # Filter out the 0 lenght sentences
+        test_data = [[encoder.encode_words(tokens) for tokens in sent] for sent in
+                      tokenize_texts(test_texts, sent_detector=sent_detector)]
+        test_data = [sent for sent in test_data if len(sent) > 0]
+        test_data = np.asarray(test_data, dtype=list)
 
     return (train_ids, train_data, train_labels), (test_ids, test_data), encoder
 
