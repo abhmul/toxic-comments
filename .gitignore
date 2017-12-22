@@ -111,3 +111,5 @@ processed_input/
 word2vec/
 
 submissions/
+
+src/train_models\.sh
