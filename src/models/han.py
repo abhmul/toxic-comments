@@ -221,8 +221,8 @@ class HAN(SLModel):
         # x comes in as a batch of list of embedded sentences
         # Need to turn it into a list of packed sequences
         # We make packs for each document
-        x = [[pad_numpy_to_length(sent, length=1) for sent in sample] for sample in x]
-        x = [(sample if len(sample) > 0 else [pad_numpy_to_length(np.empty((0, self.n_features)), 1)]) for sample in x]
+        x = [[sent for sent in sample if len(sent) > 0] for sample in x]
+        # x = [(sample if len(sample) > 0 else [pad_numpy_to_length(np.empty((0, self.n_features)), 1)]) for sample in x]
         return [[Variable(J.Tensor(sent), volatile) for sent in sample] for sample in x]
 
     def cast_target_to_torch(self, y, volatile=False):
