@@ -6,7 +6,7 @@ import numpy as np
 from gensim.models.word2vec import Word2Vec
 
 parser = argparse.ArgumentParser(description='Train embeddings for the dataset.')
-parser.add_argument('-d', '--data', default="../processed_input", help='Path to input data')
+parser.add_argument('-d', '--data', default="../input", help='Path to input data')
 parser.add_argument('-s', '--save', required=True, help='Save path for the new word2vec model')
 parser.add_argument('--size', default=100, type=int, help='Size of the vectors to train')
 parser.add_argument('--other_embeddings', default="", help='Other embeddings to intersect with')
