@@ -103,3 +103,9 @@ ENV/
 \.idea/
 
 input/
+
+processed_input/
+
+models/
+
+word2vec/

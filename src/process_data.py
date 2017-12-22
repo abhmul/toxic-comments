@@ -25,10 +25,14 @@ LABEL_NAMES = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity
 def tokenize_texts(texts, sent_detector=None):
     for text in tqdm(texts):
         # Tokenize the text
-        if sent_detector is not None:
-            tokens = [nltk.tokenize.word_tokenize(sent) for sent in sent_detector.tokenize(text)]
-        else:
-            tokens = nltk.tokenize.word_tokenize(text)
+        try:
+            if sent_detector is not None:
+                tokens = [nltk.tokenize.word_tokenize(sent) for sent in sent_detector.tokenize(text)]
+            else:
+                tokens = nltk.tokenize.word_tokenize(text)
+        except:
+            print(text)
+            raise ValueError()
         yield tokens
 
 
@@ -42,7 +46,7 @@ def load_data(vocab, path_to_data="../input/", parse_sentences=False):
     path_to_train_csv = os.path.join(path_to_data, "train.csv")
     print("Reading files in %s" % path_to_train_csv)
     # Open the csv file
-    train_csv = pd.read_csv("train.csv")
+    train_csv = pd.read_csv(path_to_train_csv)
     train_ids = train_csv["id"].values
     train_texts = train_csv["comment_text"]
     train_labels = train_csv[LABEL_NAMES].values
@@ -58,7 +62,8 @@ def load_data(vocab, path_to_data="../input/", parse_sentences=False):
     path_to_test_csv = os.path.join(path_to_data, "test.csv")
     print("Reading files in %s" % path_to_test_csv)
     # Open the csv file
-    test_csv = pd.read_csv("test.csv")
+    # We need to prevent "N/A" from being interpreted as a nan
+    test_csv = pd.read_csv(path_to_test_csv, keep_default_na=False, na_values=[])
     test_ids = test_csv["id"].values
     test_texts = test_csv["comment_text"]
 
