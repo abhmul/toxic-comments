@@ -11,6 +11,8 @@ parser.add_argument('-s', '--save', required=True, help='Save path for the new w
 parser.add_argument('--size', default=100, type=int, help='Size of the vectors to train')
 parser.add_argument('--other_embeddings', default="", help='Other embeddings to intersect with')
 parser.add_argument('--intersect_after', action='store_true', help='Intersects the other embeddings after training.')
+parser.add_argument('--min_count', default=5, type=int, help='Minimum number of times a word must occur to be ' +
+                                                             'included.')
 args = parser.parse_args()
 
 
@@ -31,8 +33,8 @@ def load_data(path_to_data="../input"):
     return all_texts
 
 
-def train_word2vec(datagen, other_embeddings="", intersect_after=False, size=100):
-    w2v = Word2Vec(size=size, workers=4)
+def train_word2vec(datagen, other_embeddings="", intersect_after=False, size=100, min_count=5):
+    w2v = Word2Vec(size=size, workers=4, min_count=min_count)
     w2v.build_vocab(datagen)
     if other_embeddings and not intersect_after:
         binary = os.path.splitext(other_embeddings)[-1] == ".bin"
@@ -48,7 +50,7 @@ def train_word2vec(datagen, other_embeddings="", intersect_after=False, size=100
 if __name__ == "__main__":
     datagen = load_data(args.path_to_data)
     w2v_model = train_word2vec(datagen, other_embeddings=args.other_embeddings, intersect_after=args.intersect_after,
-                               size=args.size)
+                               size=args.size, min_count=args.min_count)
     # Save the trained model's vectors
     w2v_model.save_word2vec_format(args.save, binary=True)
 
