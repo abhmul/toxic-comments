@@ -2,6 +2,7 @@ from pyjet.data import NpDataset, Dataset
 import numpy as np
 import pickle as pkl
 
+LABEL_NAMES = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
 
 class ToxicData(object):
 
@@ -15,7 +16,10 @@ class ToxicData(object):
     def load_supervised(data):
         ids = data["ids"]
         text = data["data"]
-        labels = data["labels"]
+        if "labels" in data:
+            labels = data["labels"]
+        else:
+            labels = None
         return ids, NpDataset(text, labels)
 
     def load_train_supervised(self):
@@ -62,9 +66,6 @@ class EmbeddingDataset(Dataset):
     def create_batch(self, batch_indicies):
         # Grab the batch from the underlying dataset
         x_batch = self.dataset.create_batch(batch_indicies)
-        if self.logger is not None:
-            self.logger.register_input(
-                x_batch[0] if self.output_labels else x_batch)
         # Split up the labels and samples if necessary
         if self.output_labels:
             x_batch, y_batch = x_batch
@@ -78,7 +79,9 @@ class EmbeddingDataset(Dataset):
             # Each batch is a list of docs sorted by length
             x_batch = [self.embeddings[sample] for sample in x_batch]
         # Return the batch
-        return x_batch, y_batch if self.output_labels else x_batch
+        if self.output_labels:
+            return x_batch, y_batch
+        return x_batch
 
     def validation_split(self, split=0.2, shuffle=True, seed=None):
         train_dataset, val_dataset = self.dataset.validation_split(

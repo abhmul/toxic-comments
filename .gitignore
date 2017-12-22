@@ -106,6 +106,8 @@ input/
 
 processed_input/
 
-models/
+*.state
 
 word2vec/
+
+submissions/
