@@ -24,7 +24,7 @@ parser.add_argument('--batch_size', type=int, default=32, help="Batch size to us
 parser.add_argument('--test_batch_size', type=int, default=8, help="Batch size to use when running script")
 parser.add_argument('--split', type=float, default=0.1, help="Fraction of data to split into validation")
 parser.add_argument('--epochs', type=int, default=20, help="Number of epochs to train the model for")
-parser.add_argument('--plot', action="store", help="Number of epochs to train the model for")
+parser.add_argument('--plot', action="store_true", help="Number of epochs to train the model for")
 args = parser.parse_args()
 
 # Params
