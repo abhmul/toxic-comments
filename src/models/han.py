@@ -241,7 +241,7 @@ class HAN(SLModel):
         # Run the fc layer if we have one
         if self.has_fc:
             sent_outs = self.dropout_fc1(sent_outs)
-            sent_outs = self.fc1(sent_outs)
+            sent_outs = F.relu(self.fc1(sent_outs))
             sent_outs = self.bn_fc(sent_outs)
 
         sent_outs = self.dropout_fc_eval(sent_outs)

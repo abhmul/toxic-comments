@@ -84,7 +84,7 @@ class CNNEmb(SLModel):
         # Run the fc layer if we have one
         if self.has_fc:
             x = self.dropout_fc1(x)
-            x = self.fc_layer(x)
+            x = F.relu(self.fc_layer(x))
             x = self.bn_fc(x)
 
         x = self.dropout_fc_eval(x)
