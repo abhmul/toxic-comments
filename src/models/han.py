@@ -216,13 +216,15 @@ class HAN(SLModel):
             self.fc1 = None
             self.fc_eval = nn.Linear(n_hidden_sent, 6)
         self.dropout_fc_eval = nn.Dropout(fc_dropout) if fc_dropout != 1. else lambda x: x
+        self.min_len = 5
+        self.default_sentence = np.zeros((self.min_len, self.n_features))
 
     def cast_input_to_torch(self, x, volatile=False):
         # x comes in as a batch of list of embedded sentences
         # Need to turn it into a list of packed sequences
         # We make packs for each document
-        x = [[sent for sent in sample if len(sent) > 0] for sample in x]
-        # x = [(sample if len(sample) > 0 else [pad_numpy_to_length(np.empty((0, self.n_features)), 1)]) for sample in x]
+        x = [[pad_numpy_to_length(sent, length=self.min_len) for sent in sample] for sample in x]
+        x = [(sample if len(sample) > 0 else [self.default_sentence]) for sample in x]
         return [[Variable(J.Tensor(sent), volatile) for sent in sample] for sample in x]
 
     def cast_target_to_torch(self, y, volatile=False):

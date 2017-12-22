@@ -1,6 +1,7 @@
 from pyjet.data import NpDataset, Dataset
 import numpy as np
 import pickle as pkl
+import pandas as pd
 
 LABEL_NAMES = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
 
@@ -21,6 +22,12 @@ class ToxicData(object):
         else:
             labels = None
         return ids, NpDataset(text, labels)
+
+    @staticmethod
+    def save_submission(submission_fname, pred_ids, predictions):
+        submid = pd.DataFrame({'id': pred_ids})
+        submission = pd.concat([submid, pd.DataFrame(data=predictions, columns=LABEL_NAMES)], axis=1)
+        submission.to_csv(submission_fname, index=False)
 
     def load_train_supervised(self):
         return self.load_supervised(np.load(self.train_path))
@@ -72,7 +79,7 @@ class EmbeddingDataset(Dataset):
 
         # transpose so it is channels x words
         if self.parsed_sent:
-            # Each sample is a list of embedded sentences sorted by length
+            # Each sample is a list of embedded sentences sorted by length]
             x_batch = [[self.embeddings[sent] for sent in sample if len(sent) > 0]
                        for sample in x_batch]
         else:
