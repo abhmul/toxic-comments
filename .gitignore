@@ -113,3 +113,7 @@ word2vec/
 submissions/
 
 src/train_models\.sh
+
+src/process_data\.sh
+
+src/check_similarity\.ipynb

@@ -1,9 +1,13 @@
+import nltk
 import os
 import argparse
 import pandas as pd
 import numpy as np
 
 from gensim.models.word2vec import Word2Vec
+
+import logging
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
 parser = argparse.ArgumentParser(description='Train embeddings for the dataset.')
 parser.add_argument('-d', '--data', default="../input", help='Path to input data')
@@ -28,8 +32,11 @@ def load_data(path_to_data="../input"):
     test_texts = pd.read_csv(path_to_test_csv, keep_default_na=False, na_values=[])["comment_text"]
     # Combined texts
     all_texts = pd.concat([train_texts, test_texts]).values
-    # Shuffle the texts
     np.random.shuffle(all_texts)
+    # Tokenize the texts
+    all_texts = [nltk.tokenize.word_tokenize(text) for text in all_texts]
+    print(all_texts[:20])
+    # Shuffle the texts
     return all_texts
 
 
@@ -48,9 +55,9 @@ def train_word2vec(datagen, other_embeddings="", intersect_after=False, size=100
 
 
 if __name__ == "__main__":
-    datagen = load_data(args.path_to_data)
+    datagen = load_data(args.data)
     w2v_model = train_word2vec(datagen, other_embeddings=args.other_embeddings, intersect_after=args.intersect_after,
                                size=args.size, min_count=args.min_count)
     # Save the trained model's vectors
-    w2v_model.save_word2vec_format(args.save, binary=True)
+    w2v_model.wv.save_word2vec_format(args.save, binary=True)
 
