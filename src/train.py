@@ -30,13 +30,18 @@ np.random.seed(SEED)
 # Params
 MODEL_FUNC = load_model(args.model)
 CONFIG = load_config(args.model)
-
 EPOCHS = args.epochs
-model_file_id = args.model + "_" + "_".join(k + "_" + str(v) for k, v in sorted(CONFIG.items())) + "_%s" % SEED
+PARSED_SENT = args.model[:3] == "han"
+# Figure out which embeddings we're training on
+if PARSED_SENT:
+    embed = os.path.split(os.path.split(args.data)[0])[-1]
+else:
+    embed = os.path.split(args.data)[-1]
+model_file_id = "{}_{}".format(args.model, embed) + \
+                "_".join(k + "_" + str(v) for k, v in sorted(CONFIG.items())) + "_%s" % SEED
 MODEL_FILE = "../models/" + model_file_id + ".state"
 SUBMISSION_FILE = "../submissions/" + model_file_id + ".csv"
 LOG_FILE = "../logs/" + model_file_id + ".txt"
-PARSED_SENT = args.model[:3] == "han"
 
 
 def train(toxic_data):

@@ -36,11 +36,13 @@ def create_new_fname(submission_fnames):
     fname_head = "../submissions/"
     fname_prefix = "ensemble"
     processed_names = [os.path.splitext(os.path.basename(subname))[0] for subname in submission_fnames]
-    ensemble_name = "-".join([fname_prefix] + processed_names) + ".csv"
+    processed_names = set([name[:name.rfind('_')] for name in processed_names])
+    ensemble_name = "-".join([fname_prefix] + sorted(processed_names)) + ".csv"
     return os.path.join(fname_head, ensemble_name)
 
 
 if __name__ == "__main__":
+    print(args.submission_fnames)
     ids, combined = ensemble_submissions(args.submission_fnames, weights=args.weights)
     ensemble_fname = create_new_fname(args.submission_fnames)
     ToxicData.save_submission(ensemble_fname, ids, combined)
