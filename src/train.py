@@ -34,7 +34,7 @@ EPOCHS = args.epochs
 PARSED_SENT = args.model[:3] == "han"
 # Figure out which embeddings we're training on
 if PARSED_SENT:
-    embed = os.path.split(os.path.split(args.data)[0])[-1]
+    embed = os.path.split(args.data[:args.data.rfind('/han')])[-1]
 else:
     embed = os.path.split(args.data)[-1]
 model_file_id = "{}_{}".format(args.model, embed) + \
