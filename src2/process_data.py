@@ -3,13 +3,26 @@ import re
 import numpy as np
 import pandas as pd
 import argparse
+import pickle as pkl
+from functools import partial
 
+import nltk
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
-from string import punctuation
 
-from gensim.models import KeyedVectors
 from keras.preprocessing.text import Tokenizer
+
+parser = argparse.ArgumentParser(description='Clean and tokenize the data.')
+parser.add_argument('-d', '--data', default="../input/", help='Path to the Toxic data')
+parser.add_argument('-s', '--save', default="../processed_input/", help='Path to save the new data to.')
+parser.add_argument('--parse_sent', action='store_true', help='Stores the data with sentences parsed out.')
+parser.add_argument('--remove_stopwords', action='store_true', help='Removes the stop words from the data')
+parser.add_argument('--keep_special_chars', action='store_true', help='Keeps special characters in the data')
+parser.add_argument('--keep_numbers', action='store_true', help='Keeps number digits in the data')
+parser.add_argument('--max_nb_words', type=int, default=100000, help='Maximum number of words to keep in the data. ' +
+                                                                     'Set to -1 to keep all words')
+parser.add_argument('--nltk_tokenize', action='store_true', help="Uses the nltk punkt word tokenizer.")
+args = parser.parse_args()
 
 LABEL_NAMES = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
 # Regex to remove all Non-Alpha Numeric and space
@@ -34,7 +47,7 @@ def load_data(path_to_data="../input"):
     test_ids = test_csv["id"].values
     test_texts = test_csv["comment_text"].fillna("NA").values
 
-    return (train_ids, train_labels, train_texts), (test_ids, test_texts)
+    return (train_ids, train_texts, train_labels), (test_ids, test_texts)
 
 
 def parse_sentences(texts, sent_detector):
@@ -111,3 +124,57 @@ def tokenize(train_texts, test_texts, tokenize_func=None, max_nb_words=100000):
     test_texts = [[tokenizer.word_index[word] for word in text] for text in test_texts]
 
     return train_texts, test_texts, tokenizer.word_index
+
+
+def process_texts(train_texts, test_texts, parse_sent=False, remove_stopwords=False, remove_special_chars=True,
+                  replace_numbers=True, stem_words=False, tokenize_func=None, max_nb_words=100000):
+    # Parse out the sentences if we need to
+    if parse_sent:
+        sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
+        print("Parsing sentences is activated")
+        train_texts, train_starts = parse_sentences(train_texts, sent_detector)
+        test_texts, test_starts = parse_sentences(test_texts, sent_detector)
+
+    # Clean the texts
+    clean_func = partial(clean_text, remove_stopwords=remove_stopwords, remove_special_chars=remove_special_chars,
+                         replace_numbers=replace_numbers, stem_words=stem_words)
+    train_texts = clean(train_texts, clean_func)
+    test_texts = clean(test_texts, clean_func)
+
+    # Tokenize the texts
+    train_texts, test_texts, word_index = tokenize(train_texts, test_texts, tokenize_func=tokenize_func,
+                                                   max_nb_words=max_nb_words)
+
+    # Reformat the texts if necessary
+    if parse_sent:
+        train_texts = reformat_texts(train_texts, train_starts)
+        test_texts = reformat_texts(test_texts, test_starts)
+
+    return train_texts, test_texts, word_index
+
+
+def save_data(train_data, test_data, word_index, save_dest="../processed_input/"):
+    train_ids, train_texts, train_labels = train_data
+    test_ids, test_texts = test_data
+    # Save the datasets
+    train_save_dest = os.path.join(save_dest, "train.npz")
+    np.savez(train_save_dest, ids=train_ids, texts=train_texts, labels=train_labels)
+    print("Saved Train Dataset")
+    test_save_dest = os.path.join(save_dest, "test.npz")
+    np.savez(test_save_dest, ids=test_ids, texts=test_texts)
+    print("Saved Test Dataset")
+    # Save the word_index
+    with open(os.path.join(save_dest, "word_index.pkl"), 'wb') as word_index_file:
+        pkl.dump(word_index, word_index_file)
+    print("Saved Word Index")
+
+
+if __name__ == "__main__":
+    (train_ids, train_texts, train_labels), (test_id, test_texts) = load_data(args.data)
+    tokenize_func = nltk.tokenize.word_tokenize if args.nltk_tokenize else None
+    train_texts, test_texts, word_index = process_texts(train_texts, test_texts, parse_sent=args.parse_sent,
+                                                        remove_stopwords=args.remove_stopwords,
+                                                        remove_special_chars=(not args.keep_special_chars),
+                                                        replace_numbers=(not args.keep_numbers),
+                                                        stem_words=args.stem_words, tokenize_func=tokenize_func,
+                                                        max_nb_words=args.max_nb_words)
