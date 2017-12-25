@@ -16,7 +16,7 @@ class ToxicData(object):
     @staticmethod
     def load_supervised(data):
         ids = data["ids"]
-        text = data["data"]
+        text = data["texts"]
         if "labels" in data:
             labels = data["labels"]
         else:

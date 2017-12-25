@@ -5,12 +5,13 @@ import pandas as pd
 import argparse
 import pickle as pkl
 from functools import partial
+from tqdm import tqdm
 
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
 
-from keras.preprocessing.text import Tokenizer
+from keras.preprocessing.text import Tokenizer, text_to_word_sequence
 
 parser = argparse.ArgumentParser(description='Clean and tokenize the data.')
 parser.add_argument('-d', '--data', default="../input/", help='Path to the Toxic data')
@@ -19,6 +20,7 @@ parser.add_argument('--parse_sent', action='store_true', help='Stores the data w
 parser.add_argument('--remove_stopwords', action='store_true', help='Removes the stop words from the data')
 parser.add_argument('--keep_special_chars', action='store_true', help='Keeps special characters in the data')
 parser.add_argument('--keep_numbers', action='store_true', help='Keeps number digits in the data')
+parser.add_argument('--stem_words', action='store_true', help='Keeps number digits in the data')
 parser.add_argument('--max_nb_words', type=int, default=100000, help='Maximum number of words to keep in the data. ' +
                                                                      'Set to -1 to keep all words')
 parser.add_argument('--nltk_tokenize', action='store_true', help="Uses the nltk punkt word tokenizer.")
@@ -51,7 +53,7 @@ def load_data(path_to_data="../input"):
 
 def parse_sentences(texts, sent_detector):
     # Parse out the sentences
-    texts = [sent_detector(text) for text in texts]
+    texts = [sent_detector.tokenize(text) for text in tqdm(texts)]
     # Get the start sentences of each text
     text_starts = [i == 0 for text in texts for i, sent in enumerate(text)]
     # Flatten the texts
@@ -104,23 +106,28 @@ def clean_text(text, remove_stopwords=False, remove_special_chars=True, replace_
 
 
 def clean(texts, clean_func):
-    return [clean_func(text) for text in texts]
+    return [clean_func(text) for text in tqdm(texts)]
 
 
 def tokenize(train_texts, test_texts, tokenize_func=None, max_nb_words=100000):
+    if max_nb_words == -1:
+        max_nb_words = None
     tokenizer = Tokenizer(num_words=max_nb_words)
     # Split up each text
-    if tokenize_func is None:
-        tokenize_func = lambda text: text.split()
-    train_texts = [tokenize_func(text) for text in train_texts]
-    test_texts = [tokenize_func(text) for text in test_texts]
+    # TODO For now using a tokenizer func is not suppoted
+    if tokenize_func is not None:
+        raise NotImplementedError("No tokenizer func is supported yet")
+    # if tokenize_func is None:
+    #     tokenize_func = lambda text: text.split()
+    # train_texts = [tokenize_func(text) for text in train_texts]
+    # test_texts = [tokenize_func(text) for text in test_texts]
 
     # Fit the tokenizer
-    tokenizer.fit_on_sequences(train_texts + test_texts)
+    tokenizer.fit_on_texts(train_texts + test_texts)
 
     # Tokenize the texts
-    train_texts = [[tokenizer.word_index[word] for word in text] for text in train_texts]
-    test_texts = [[tokenizer.word_index[word] for word in text] for text in test_texts]
+    train_texts = [text_to_word_sequence(text) for text in tqdm(train_texts)]
+    test_texts = [text_to_word_sequence(text) for text in tqdm(test_texts)]
 
     return train_texts, test_texts, tokenizer.word_index
 
@@ -135,14 +142,23 @@ def process_texts(train_texts, test_texts, parse_sent=False, remove_stopwords=Fa
         test_texts, test_starts = parse_sentences(test_texts, sent_detector)
 
     # Clean the texts
+    print("Cleaning the texts...")
     clean_func = partial(clean_text, remove_stopwords=remove_stopwords, remove_special_chars=remove_special_chars,
                          replace_numbers=replace_numbers, stem_words=stem_words)
     train_texts = clean(train_texts, clean_func)
     test_texts = clean(test_texts, clean_func)
 
     # Tokenize the texts
+    print("Tokenizing the texts...")
     train_texts, test_texts, word_index = tokenize(train_texts, test_texts, tokenize_func=tokenize_func,
                                                    max_nb_words=max_nb_words)
+
+    if not parse_sent:
+        save_clean_text(train_texts, test_texts, save_dest=args.save)
+
+    # Map the texts to their indicies
+    train_texts = [[word_index[word] for word in text] for text in tqdm(train_texts)]
+    test_texts = [[word_index[word] for word in text] for text in tqdm(test_texts)]
 
     # Reformat the texts if necessary
     if parse_sent:
@@ -150,6 +166,11 @@ def process_texts(train_texts, test_texts, parse_sent=False, remove_stopwords=Fa
         test_texts = reformat_texts(test_texts, test_starts)
 
     return train_texts, test_texts, word_index
+
+
+def save_clean_text(train_texts, test_texts, save_dest="../processed_input/"):
+    np.save(os.path.join(save_dest, "clean_train.npy"), train_texts)
+    np.save(os.path.join(save_dest, "clean_test.npy"), test_texts)
 
 
 def save_data(train_data, test_data, word_index, save_dest="../processed_input/"):

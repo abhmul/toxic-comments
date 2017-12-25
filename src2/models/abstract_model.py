@@ -30,6 +30,7 @@ class AEmbeddingModel(SLModel):
         embeddings.weight.requires_grad = trainable
         with open(os.path.join(embeddings_path, "missing.pkl"), 'rb') as missing_file:
             missing = pkl.load(missing_file)
+        print("Loaded", embeddings.num_embeddings, "embeddings and", len(missing), "missing words.")
         return embeddings, missing
 
     def forward(self, *inputs, **kwargs):

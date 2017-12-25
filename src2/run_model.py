@@ -13,7 +13,7 @@ from models import load_model, load_config
 
 parser = argparse.ArgumentParser(description='Run the models.')
 parser.add_argument('-m', '--model', required=True, help='The model name to train')
-parser.add_argument('-d', '--data', '../processed_input/', help='Path to input data')
+parser.add_argument('-d', '--data', default='../processed_input/', help='Path to input data')
 parser.add_argument('-e', '--embeddings', default='../embeddings/', help='Path to directory with embeddings to use')
 parser.add_argument('--train', action="store_true", help="Whether to run this script to train a model")
 parser.add_argument('--test', action="store_true", help="Whether to run this script to generate submissions")
@@ -69,7 +69,7 @@ def train(toxic_data):
     # Initialize the model
     model = MODEL_FUNC(args.embeddings, **CONFIG)
     # And the optimizer
-    optimizer = optim.Adam(model.parameters())
+    optimizer = optim.Adam(param for param in model.parameters() if param.requires_grad)
 
     # And finally train
     tr_logs, val_logs = model.fit_generator(traingen, steps_per_epoch=traingen.steps_per_epoch,

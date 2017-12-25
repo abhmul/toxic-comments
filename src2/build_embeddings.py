@@ -4,6 +4,7 @@ import pickle as pkl
 
 import numpy as np
 from gensim.models.word2vec import KeyedVectors
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description='Construct an embeddings matrix for the data.')
 parser.add_argument('-e', '--embeddings_path', required=True, help='Path to embeddings')
@@ -30,7 +31,7 @@ def load_glove_embeddings(embeddings_path, word_index):
     embeddings = np.zeros((len(word_index) + 1, embedding_dim))
     not_missing = set()
     f = open(embeddings_path)
-    for line in f:
+    for line in tqdm(f):
         values = line.split()
         word = values[0]
         coefs = np.asarray(values[1:], dtype='float32')
@@ -54,7 +55,7 @@ def load_w2v_embeddings(embeddings_path, word_index):
     # Now create the embeddings matrix
     embeddings = np.zeros((len(word_index) + 1, embedding_dim))
     missing = set()
-    for word, i in word_index.items():
+    for word, i in tqdm(word_index.items()):
         if word in word_vectors.vocab:
             embeddings[i] = word_vectors[word]
         else:

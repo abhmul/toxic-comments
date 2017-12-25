@@ -14,7 +14,7 @@ class CNNEmb(AEmbeddingModel):
 
     def __init__(self, embeddings_path, trainable=False, vocab_size=None, num_features=None, kernel_size=3,
                  pool_kernel_size=2, pool_stride=1, n1_filters=512, n2_filters=256,
-                 k=5, conv_dropout=0.2, fc1_size=0, fc_dropout=0.5, batchnorm=True):
+                 k=5, conv_dropout=0.2, fc_size=0, fc_dropout=0.5, batchnorm=True):
         super(CNNEmb, self).__init__(embeddings_path, trainable=trainable, vocab_size=vocab_size, num_features=num_features)
 
         self.kernel_size = kernel_size
@@ -29,7 +29,7 @@ class CNNEmb(AEmbeddingModel):
         self.padding = (kernel_size - 1) // 2
 
         # Block 1
-        self.conv1 = nn.Conv1d(num_features, n1_filters, kernel_size, padding=self.padding)
+        self.conv1 = nn.Conv1d(self.num_features, n1_filters, kernel_size, padding=self.padding)
         self.m1 = nn.MaxPool1d(pool_kernel_size, stride=pool_stride)
         self.bn1 = nn.BatchNorm1d(n1_filters) if batchnorm else None
         self.dropout1 = nn.Dropout(conv_dropout) if conv_dropout != 1. else lambda x: x
@@ -39,12 +39,12 @@ class CNNEmb(AEmbeddingModel):
         self.bn2 = nn.BatchNorm1d(n2_filters) if batchnorm else None
         self.dropout2 = nn.Dropout(conv_dropout) if conv_dropout != 1. else lambda x: x
         # Fully connected layers
-        self.has_fc = fc1_size > 0
+        self.has_fc = fc_size > 0
         if self.has_fc:
-            self.dropout_fc1 = nn.Dropout(fc_dropout) if fc_dropout != 1. else lambda x: x
-            self.bn_fc = nn.BatchNorm1d(fc1_size)
-            self.fc_layer = nn.Linear(k * n2_filters, fc1_size)
-            self.fc_eval = nn.Linear(fc1_size, 6)
+            self.dropout_fc = nn.Dropout(fc_dropout) if fc_dropout != 1. else lambda x: x
+            self.bn_fc = nn.BatchNorm1d(fc_size)
+            self.fc_layer = nn.Linear(k * n2_filters, fc_size)
+            self.fc_eval = nn.Linear(fc_size, 6)
         else:
             self.fc_layer = None
             self.fc_eval = nn.Linear(k * n2_filters, 6)
@@ -52,11 +52,11 @@ class CNNEmb(AEmbeddingModel):
 
     def cast_input_to_torch(self, x, volatile=False):
         # Remove any missing words
-        x = [np.array(word for word in sample if word not in self.missing) for sample in x]
+        x = [np.array([word for word in sample if word not in self.missing]) for sample in x]
         # If a sample is too short extend it
         x = [pad_numpy_to_length(sample, length=(self.k + 2)) for sample in x]
         # Transpose to get features x length
-        return [self.embeddings(Variable(J.from_numpy(sample), volatile=volatile)) for sample in x]
+        return [self.embeddings(Variable(J.from_numpy(sample).long(), volatile=volatile)).transpose(0, 1) for sample in x]
 
     def cast_target_to_torch(self, y, volatile=False):
         return Variable(J.from_numpy(y).float(), volatile=volatile)
@@ -85,7 +85,7 @@ class CNNEmb(AEmbeddingModel):
 
         # Run the fc layer if we have one
         if self.has_fc:
-            x = self.dropout_fc1(x)
+            x = self.dropout_fc(x)
             x = F.relu(self.fc_layer(x))
             x = self.bn_fc(x)
 

@@ -4,11 +4,11 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
 
-from pyjet.models import SLModel
 import pyjet.backend as J
 
 from models.modules import pad_torch_embedded_sequences, unpad_torch_embedded_sequences, pack_torch_embedded_sequences, \
     unpack_torch_embedded_sequences, pad_numpy_to_length
+from models.abstract_model import AEmbeddingModel
 
 
 def timedistributed_softmax(x):
@@ -153,6 +153,7 @@ class AttentionHierarchy(nn.Module):
         self.input_encoding_size = input_encoding_size
         self.hidden_size = hidden_size
         # We want to swap this out with other encoders
+        print(input_encoding_size, hidden_size, encoder_dropout)
         if encoder_type == 'gru':
             self.encoder = GRUEncoder(input_encoding_size, hidden_size, encoder_dropout=encoder_dropout)
         elif encoder_type == 'lstm':
@@ -170,43 +171,42 @@ class AttentionHierarchy(nn.Module):
         return torch.stack([seq.sum(dim=0) for seq in x])  # B x H
 
 
-class HAN(SLModel):
+class HAN(AEmbeddingModel):
 
-    def __init__(self, n_features, n_hidden_word=100, n_hidden_sent=100, encoder_dropout=0.2, fc1_size=0,
-                 fc_dropout=0.5, batchnorm=False):
-        super(HAN, self).__init__()
+    def __init__(self, embeddings_path, trainable=False, vocab_size=None, num_features=None, n_hidden_word=100, n_hidden_sent=100, encoder_type='gru', encoder_dropout=0.2,
+                 fc_size=0, fc_dropout=0.5, batchnorm=False):
+        super(HAN, self).__init__(embeddings_path, trainable=trainable, vocab_size=vocab_size, num_features=num_features)
 
-        self.n_features = n_features
         self.n_hidden_word = n_hidden_word
         self.n_hidden_sent = n_hidden_sent
-        self.word_hierarchy = AttentionHierarchy(n_features, n_hidden_word, encoder_dropout=encoder_dropout,
-                                                 batchnorm=batchnorm)
+        self.word_hierarchy = AttentionHierarchy(self.num_features, n_hidden_word, encoder_dropout=encoder_dropout,
+                                                 encoder_type=encoder_type, batchnorm=batchnorm)
         self.sent_hierarchy = AttentionHierarchy(n_hidden_word, n_hidden_sent, encoder_dropout=encoder_dropout,
-                                                 batchnorm=batchnorm)
+                                                 encoder_type=encoder_type, batchnorm=batchnorm)
         self.batchnorm = batchnorm
         # Fully connected layers
-        self.has_fc = fc1_size > 0
+        self.has_fc = fc_size > 0
         if self.has_fc:
-            self.dropout_fc1 = nn.Dropout(fc_dropout) if fc_dropout != 1. else lambda x: x
-            self.bn_fc = nn.BatchNorm1d(fc1_size)
-            self.fc1 = nn.Linear(n_hidden_sent, fc1_size)
-            self.fc_eval = nn.Linear(fc1_size, 6)
+            self.dropout_fc = nn.Dropout(fc_dropout) if fc_dropout != 1. else lambda x: x
+            self.bn_fc = nn.BatchNorm1d(fc_size)
+            self.fc1 = nn.Linear(n_hidden_sent, fc_size)
+            self.fc_eval = nn.Linear(fc_size, 6)
         else:
             self.fc1 = None
             self.fc_eval = nn.Linear(n_hidden_sent, 6)
         self.dropout_fc_eval = nn.Dropout(fc_dropout) if fc_dropout != 1. else lambda x: x
         self.min_len = 5
-        self.default_sentence = np.zeros((self.min_len, self.n_features))
+        self.default_sentence = np.zeros((self.min_len, self.num_features))
 
     def cast_input_to_torch(self, x, volatile=False):
         # x comes in as a batch of list of token sentences
         # Need to turn it into a list of packed sequences
         # We make packs for each document
         # Remove any missing words
-        x = [[np.array(word for word in sent if word not in self.missing) for sent in sample] for sample in x]
+        x = [[np.array([word for word in sent if word not in self.missing]) for sent in sample] for sample in x]
         x = [[pad_numpy_to_length(sent, length=self.min_len) for sent in sample] for sample in x]
         x = [(sample if len(sample) > 0 else [self.default_sentence]) for sample in x]
-        return [[self.embeddings(Variable(J.from_numpy(sent), volatile)) for sent in sample] for sample in x]
+        return [[self.embeddings(Variable(J.from_numpy(sent).long(), volatile)) for sent in sample] for sample in x]
 
     def cast_target_to_torch(self, y, volatile=False):
         return Variable(torch.from_numpy(y).cuda().float(), volatile=volatile)
@@ -223,7 +223,7 @@ class HAN(SLModel):
         # print(tuple(sent_outs.size()))
         # Run the fc layer if we have one
         if self.has_fc:
-            sent_outs = self.dropout_fc1(sent_outs)
+            sent_outs = self.dropout_fc(sent_outs)
             sent_outs = F.relu(self.fc1(sent_outs))
             sent_outs = self.bn_fc(sent_outs)
 
