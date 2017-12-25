@@ -1,6 +1,17 @@
 import os
+import argparse
+import pickle as pkl
+
 import numpy as np
 from gensim.models.word2vec import KeyedVectors
+
+parser = argparse.ArgumentParser(description='Construct an embeddings matrix for the data.')
+parser.add_argument('-e', '--embeddings_path', required=True, help='Path to embeddings')
+parser.add_argument('-w', '--word_index_path', required=True, help='Path to word_index')
+parser.add_argument('-s', '--save', default="../embeddings/",
+                    help='Path to directory to save the new embeddings matrix to.')
+parser.add_argument('--embeddings_type', default="word2vec", help="Type of embeddings to load")
+args = parser.parse_args()
 
 
 def load_glove_embeddings(embeddings_path, word_index):
@@ -57,3 +68,18 @@ def load_embeddings(embeddings_path, word_index, embeddings_type="word2vec"):
     elif embeddings_type == "glove":
         return load_glove_embeddings(embeddings_path, word_index)
     raise NotImplementedError("Embeddings type %s is not supported" % embeddings_type)
+
+
+def save_embeddings(embeddings, missing, save_dir="../embeddings/"):
+    np.save(os.path.join(save_dir, "embeddings.npy"), embeddings)
+    print("Saved the embeddings")
+    with open(os.path.join(save_dir, "missing.pkl"), 'wb') as missing_file:
+        pkl.dump(missing, missing_file)
+    print("Saved missing indicies")
+
+if __name__ == '__main__':
+    with open(args.word_index_path, 'rb') as word_index_file:
+        word_index = pkl.load(word_index_file)
+    embeddings_matrix, missing_indicies = load_embeddings(args.embeddings_path, word_index,
+                                                          embeddings_type=args.embeddings_type)
+    save_embeddings(embeddings_matrix, missing_indicies, save_dir=args.save)
