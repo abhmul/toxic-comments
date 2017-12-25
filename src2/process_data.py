@@ -22,7 +22,6 @@ parser.add_argument('--keep_numbers', action='store_true', help='Keeps number di
 parser.add_argument('--max_nb_words', type=int, default=100000, help='Maximum number of words to keep in the data. ' +
                                                                      'Set to -1 to keep all words')
 parser.add_argument('--nltk_tokenize', action='store_true', help="Uses the nltk punkt word tokenizer.")
-args = parser.parse_args()
 
 LABEL_NAMES = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
 # Regex to remove all Non-Alpha Numeric and space
@@ -170,7 +169,8 @@ def save_data(train_data, test_data, word_index, save_dest="../processed_input/"
 
 
 if __name__ == "__main__":
-    (train_ids, train_texts, train_labels), (test_id, test_texts) = load_data(args.data)
+    args = parser.parse_args()
+    (train_ids, train_texts, train_labels), (test_ids, test_texts) = load_data(args.data)
     tokenize_func = nltk.tokenize.word_tokenize if args.nltk_tokenize else None
     train_texts, test_texts, word_index = process_texts(train_texts, test_texts, parse_sent=args.parse_sent,
                                                         remove_stopwords=args.remove_stopwords,
@@ -178,3 +178,6 @@ if __name__ == "__main__":
                                                         replace_numbers=(not args.keep_numbers),
                                                         stem_words=args.stem_words, tokenize_func=tokenize_func,
                                                         max_nb_words=args.max_nb_words)
+    train_data = (train_ids, train_texts, train_labels)
+    test_data = (test_ids, test_texts)
+    save_data(train_data, test_data, word_index, save_dest=args.save)

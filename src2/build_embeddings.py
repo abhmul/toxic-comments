@@ -77,6 +77,7 @@ def save_embeddings(embeddings, missing, save_dir="../embeddings/"):
         pkl.dump(missing, missing_file)
     print("Saved missing indicies")
 
+
 if __name__ == '__main__':
     with open(args.word_index_path, 'rb') as word_index_file:
         word_index = pkl.load(word_index_file)
