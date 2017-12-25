@@ -123,3 +123,7 @@ embeddings/GoogleNews/
 embeddings/gensim0_google/
 
 src2/train_models\.sh
+
+embeddings/glove/
+
+glove/

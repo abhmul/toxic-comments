@@ -23,6 +23,7 @@ parser.add_argument('--split', type=float, default=0.1, help="Fraction of data t
 parser.add_argument('--epochs', type=int, default=10, help="Number of epochs to train the model for")
 parser.add_argument('--plot', action="store_true", help="Number of epochs to train the model for")
 parser.add_argument('--seed', type=int, default=113, help="Seed fo the random number generator")
+parser.add_argument('--trainable', action="store_true", help="Whether or not the embeddings are trainable")
 args = parser.parse_args()
 
 SEED = args.seed
@@ -36,8 +37,9 @@ EPOCHS = args.epochs
 
 def get_train_id(model_name, embeddings_path, config, seed):
     embedding_name = Path(embeddings_path).parts[-1]
-    items_of_id = [model_name, embedding_name] + [k + "-" + str(v) for k, v in sorted(config.items())] + [str(seed)]
-    return "_".join(items_of_id)
+    prefix = [model_name, embedding_name, "trainable_emb-" + str(args.trainable)]
+    config_repr = [k + "-" + str(v) for k, v in sorted(config.items())] + [str(seed)]
+    return "_".join(prefix + config_repr)
 
 
 TRAIN_ID = get_train_id(args.model, args.embeddings, CONFIG, SEED)
@@ -67,7 +69,7 @@ def train(toxic_data):
         callbacks.append(loss_plotter)
 
     # Initialize the model
-    model = MODEL_FUNC(args.embeddings, **CONFIG)
+    model = MODEL_FUNC(args.embeddings, trainable=args.trainable, **CONFIG)
     # And the optimizer
     optimizer = optim.Adam(param for param in model.parameters() if param.requires_grad)
 

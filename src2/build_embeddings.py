@@ -24,7 +24,8 @@ def load_glove_embeddings(embeddings_path, word_index):
     f = open(embeddings_path)
     for line in f:
         values = line.split()
-        embedding_dim = len(np.asarray(values[1:], dtype='float32'))
+        embedding_dim = len(np.asarray(values[-300:], dtype='float32'))
+        break
     f.close()
 
     # Now create the embeddings matrix
@@ -33,8 +34,8 @@ def load_glove_embeddings(embeddings_path, word_index):
     f = open(embeddings_path)
     for line in tqdm(f):
         values = line.split()
-        word = values[0]
-        coefs = np.asarray(values[1:], dtype='float32')
+        word = ' '.join(values[:-300])
+        coefs = np.asarray(values[-300:], dtype='float32')
         if word in word_index:
             embeddings[word_index[word]] = coefs
             not_missing.add(word_index[word])

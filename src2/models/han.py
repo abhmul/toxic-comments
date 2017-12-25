@@ -84,6 +84,7 @@ class Encoder(nn.Module):
         self.input_encoding_size = input_encoding_size
         self.output_encoding_size = output_encoding_size
         self.dropout_prob = encoder_dropout
+        self.dropout = nn.Dropout(encoder_dropout)
 
     def forward(self, x):
         raise NotImplementedError()
@@ -103,6 +104,8 @@ class GRUEncoder(Encoder):
         x, seq_lens = pad_torch_embedded_sequences(x)  # B x L x I
         x, _ = self.encoder(x)  # B x L x H
         x = unpad_torch_embedded_sequences(x, seq_lens)  # B x Li x H
+        if self.dropout_prob != 1:
+            x = [self.dropout(seq) for seq in x]
         return x
 
 
@@ -120,6 +123,8 @@ class LSTMEncoder(Encoder):
         x, seq_lens = pad_torch_embedded_sequences(x)  # B x L x I
         x, _ = self.encoder(x)  # B x L x H
         x = unpad_torch_embedded_sequences(x, seq_lens)  # B x Li x H
+        if self.dropout_prob != 1:
+            x = [self.dropout(seq) for seq in x]
         return x
 
 
@@ -131,7 +136,6 @@ class ConvEncoder(Encoder):
         self.padding = (kernel_size - 1) // 2
         self.encoder1 = nn.Conv1d(input_encoding_size, output_encoding_size, kernel_size, padding=self.padding)
         self.encoder2 = nn.Conv1d(output_encoding_size, output_encoding_size, kernel_size, padding=self.padding)
-        self.dropout = nn.Dropout(encoder_dropout)
 
     def forward(self, x):
         # x input is B x Li x I
@@ -206,7 +210,7 @@ class HAN(AEmbeddingModel):
         x = [[np.array([word for word in sent if word not in self.missing]) for sent in sample] for sample in x]
         x = [[pad_numpy_to_length(sent, length=self.min_len) for sent in sample] for sample in x]
         x = [(sample if len(sample) > 0 else [self.default_sentence]) for sample in x]
-        return [[self.embeddings(Variable(J.from_numpy(sent).long(), volatile)) for sent in sample] for sample in x]
+        return [[self.embeddings(Variable(J.from_numpy(sent).long(), volatile=False)) for sent in sample] for sample in x]
 
     def cast_target_to_torch(self, y, volatile=False):
         return Variable(torch.from_numpy(y).cuda().float(), volatile=volatile)
