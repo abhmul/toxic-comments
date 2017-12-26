@@ -55,23 +55,25 @@ def parse_sentences(texts, sent_detector):
     # Parse out the sentences
     texts = [sent_detector.tokenize(text) for text in tqdm(texts)]
     # Get the start sentences of each text
-    text_starts = [i == 0 for text in texts for i, sent in enumerate(text)]
+    text_lens = [len(text) for text in texts]
     # Flatten the texts
     flat_texts = [sent for text in texts for sent in text]
-    return flat_texts, text_starts
+    return flat_texts, text_lens
 
 
-def reformat_texts(flat_texts, text_starts):
-    assert len(flat_texts) == len(text_starts)
+def reformat_texts(flat_texts, text_lens):
+    assert len(flat_texts) == sum(text_lens)
     texts = []
     cur_text = []
-    for i, sent in enumerate(flat_texts):
+    cur_len_ind = 0
+    for sent in flat_texts:
         cur_text.append(sent)
-        # If this is our last text or marks the end of a text
-        if i == (len(flat_texts) - 1) or text_starts[i+1]:
-            # Add the current text and reset it
+        # If we have added the correct number of sentences
+        if len(cur_text) == text_lens[cur_len_ind]:
             texts.append(cur_text)
             cur_text = []
+            cur_len_ind += 1
+    assert cur_text == []
     return texts
 
 
@@ -138,8 +140,8 @@ def process_texts(train_texts, test_texts, parse_sent=False, remove_stopwords=Fa
     if parse_sent:
         sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
         print("Parsing sentences is activated")
-        train_texts, train_starts = parse_sentences(train_texts, sent_detector)
-        test_texts, test_starts = parse_sentences(test_texts, sent_detector)
+        train_texts, train_lens = parse_sentences(train_texts, sent_detector)
+        test_texts, test_lens = parse_sentences(test_texts, sent_detector)
 
     # Clean the texts
     print("Cleaning the texts...")
@@ -162,8 +164,8 @@ def process_texts(train_texts, test_texts, parse_sent=False, remove_stopwords=Fa
 
     # Reformat the texts if necessary
     if parse_sent:
-        train_texts = reformat_texts(train_texts, train_starts)
-        test_texts = reformat_texts(test_texts, test_starts)
+        train_texts = reformat_texts(train_texts, train_lens)
+        test_texts = reformat_texts(test_texts, test_lens)
 
     return train_texts, test_texts, word_index
 

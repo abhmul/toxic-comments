@@ -14,7 +14,7 @@ from models.modules import pad_torch_embedded_sequences, unpad_torch_embedded_se
 class RNNEmb(AEmbeddingModel):
 
     def __init__(self, embeddings_path, trainable=False, vocab_size=None, num_features=None, rnn_type='lstm',
-                 rnn_size=300, rnn_dropout=0.25, fc_size=256, fc_dropout=0.25, batchnorm=True):
+                 rnn_size=300, num_layers=1, rnn_dropout=0.25, fc_size=256, fc_dropout=0.25, batchnorm=True):
         super(RNNEmb, self).__init__(embeddings_path, trainable=trainable, vocab_size=vocab_size, num_features=num_features)
 
         self.rnn_size = rnn_size
@@ -22,21 +22,24 @@ class RNNEmb(AEmbeddingModel):
         self.rnn_dropout = rnn_dropout
         self.fc_dropout = fc_dropout
         self.batchnorm = batchnorm
-
+        self.num_layers = num_layers
         # RNN Block
-        self.rnn_module = AttentionHierarchy(self.num_features, rnn_size, encoder_dropout=rnn_dropout,
-                                             batchnorm=batchnorm)
+        self.rnn_module = AttentionHierarchy(self.num_features, rnn_size, num_layers=num_layers, encoder_type=rnn_type,
+                                             encoder_dropout=rnn_dropout, batchnorm=batchnorm)
 
         # Fully connected layers
         self.has_fc = fc_size > 0
         if self.has_fc:
             self.dropout_fc = nn.Dropout(fc_dropout) if fc_dropout != 1. else lambda x: x
             self.bn_fc = nn.BatchNorm1d(fc_size)
+            print("Creating fully connected layer of size %s" % fc_size)
             self.fc_layer = nn.Linear(rnn_size, fc_size)
             self.fc_eval = nn.Linear(fc_size, 6)
         else:
+            print("Not creating fully connected layer")
             self.fc_layer = None
             self.fc_eval = nn.Linear(rnn_size, 6)
+        print("Creating dropout with %s drop prob" % fc_dropout)
         self.dropout_fc_eval = nn.Dropout(fc_dropout) if fc_dropout != 1. else lambda x: x
         self.min_len = 5
 

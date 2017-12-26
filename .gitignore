@@ -112,18 +112,16 @@ word2vec/
 
 submissions/
 
+embeddings/
+
+old_processed_input/
+
 src/train_models\.sh
 
 src/process_data\.sh
 
 src/check_similarity\.ipynb
 
-embeddings/GoogleNews/
-
-embeddings/gensim0_google/
-
 src2/train_models\.sh
-
-embeddings/glove/
 
 glove/

@@ -92,11 +92,14 @@ class Encoder(nn.Module):
 
 class GRUEncoder(Encoder):
 
-    def __init__(self, input_encoding_size, output_encoding_size, encoder_dropout=0.2, batchnorm=False):
+    def __init__(self, input_encoding_size, output_encoding_size, num_layers=1, encoder_dropout=0.2,
+                 batchnorm=False):
         super(GRUEncoder, self).__init__(input_encoding_size, output_encoding_size, encoder_dropout)
 
         assert self.output_encoding_size % 2 == 0
-        self.encoder = nn.GRU(input_encoding_size, output_encoding_size // 2, num_layers=1, batch_first=True,
+        print("Creating GRU cell with %s layers" % num_layers)
+        print("GRU encoder has %s hidden neurons, %s drop prob" % (output_encoding_size, encoder_dropout))
+        self.encoder = nn.GRU(input_encoding_size, output_encoding_size // 2, num_layers=num_layers, batch_first=True,
                               bidirectional=True, dropout=encoder_dropout)
 
     def forward(self, x):
@@ -111,11 +114,12 @@ class GRUEncoder(Encoder):
 
 class LSTMEncoder(Encoder):
 
-    def __init__(self, input_encoding_size, output_encoding_size, encoder_dropout=0.2):
+    def __init__(self, input_encoding_size, output_encoding_size, num_layers=1, encoder_dropout=0.2):
         super(LSTMEncoder, self).__init__(input_encoding_size, output_encoding_size, encoder_dropout)
 
         assert self.output_encoding_size % 2 == 0
-        self.encoder = nn.LSTM(input_encoding_size, output_encoding_size // 2, num_layers=1, batch_first=True,
+        print("Creating LSTM cell with %s layers" % num_layers)
+        self.encoder = nn.LSTM(input_encoding_size, output_encoding_size // 2, num_layers=num_layers, batch_first=True,
                                bidirectional=True, dropout=encoder_dropout)
 
     def forward(self, x):
@@ -130,18 +134,22 @@ class LSTMEncoder(Encoder):
 
 class ConvEncoder(Encoder):
 
-    def __init__(self, input_encoding_size, output_encoding_size, kernel_size, encoder_dropout=0.2):
+    def __init__(self, input_encoding_size, output_encoding_size, kernel_size, num_layers=1, encoder_dropout=0.2):
         super(ConvEncoder, self).__init__(input_encoding_size, output_encoding_size, encoder_dropout)
 
         self.padding = (kernel_size - 1) // 2
-        self.encoder1 = nn.Conv1d(input_encoding_size, output_encoding_size, kernel_size, padding=self.padding)
-        self.encoder2 = nn.Conv1d(output_encoding_size, output_encoding_size, kernel_size, padding=self.padding)
+        print("Creating Conv Encoder with %s layers" % num_layers)
+        modules = [nn.Conv1d(input_encoding_size, output_encoding_size, kernel_size, padding=self.padding)] + \
+                  [nn.Conv1d(output_encoding_size, output_encoding_size, kernel_size, padding=self.padding) for _ in
+                   range(num_layers - 1)]
+        self.encoders = nn.ModuleList(modules=modules)
 
     def forward(self, x):
         # x input is B x Li x I
         x, seq_lens = pad_torch_embedded_sequences(x)  # B x L x I
-        x = F.relu(self.encoder1(x.transpose(1, 2).contiguous()))  # B x H x L
-        x = F.relu(self.encoder2(x.transpose(1, 2).contiguous()))  # B x H x L
+        x = x.trainspose(1, 2).contiguous()  # B x I x L
+        for encoder in self.encoders:
+            x = F.relu(encoder(x))  # B x H x L
         x = x.transpose(1, 2)  # B x L x H
         x = unpad_torch_embedded_sequences(x, seq_lens)  # B x Li x H
         if self.dropout_prob != 1:
@@ -151,19 +159,18 @@ class ConvEncoder(Encoder):
 
 class AttentionHierarchy(nn.Module):
 
-    def __init__(self, input_encoding_size, hidden_size, encoder_dropout=0.2, encoder_type='gru', batchnorm=False):
+    def __init__(self, input_encoding_size, hidden_size, num_layers=1, encoder_dropout=0.2, encoder_type='gru', batchnorm=False):
         super(AttentionHierarchy, self).__init__()
 
         self.input_encoding_size = input_encoding_size
         self.hidden_size = hidden_size
         # We want to swap this out with other encoders
-        print(input_encoding_size, hidden_size, encoder_dropout)
         if encoder_type == 'gru':
-            self.encoder = GRUEncoder(input_encoding_size, hidden_size, encoder_dropout=encoder_dropout)
+            self.encoder = GRUEncoder(input_encoding_size, hidden_size, num_layers=num_layers, encoder_dropout=encoder_dropout)
         elif encoder_type == 'lstm':
-            self.encoder = LSTMEncoder(input_encoding_size, hidden_size, encoder_dropout=encoder_dropout)
+            self.encoder = LSTMEncoder(input_encoding_size, hidden_size, num_layers=num_layers, encoder_dropout=encoder_dropout)
         elif encoder_type == 'conv':
-            self.encoder = ConvEncoder(input_encoding_size, hidden_size, 3, encoder_dropout=encoder_dropout)
+            self.encoder = ConvEncoder(input_encoding_size, hidden_size, 3, num_layers=num_layers, encoder_dropout=encoder_dropout)
 
         self.att = AttentionBlock(hidden_size, hidden_size, batchnorm=batchnorm)
 
