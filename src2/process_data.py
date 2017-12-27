@@ -155,8 +155,14 @@ def process_texts(train_texts, test_texts, parse_sent=False, remove_stopwords=Fa
     train_texts, test_texts, word_index = tokenize(train_texts, test_texts, tokenize_func=tokenize_func,
                                                    max_nb_words=max_nb_words)
 
-    if not parse_sent:
-        save_clean_text(train_texts, test_texts, save_dest=args.save)
+    clean_train_texts, clean_test_texts = train_texts, test_texts
+    if parse_sent:
+        clean_train_texts = reformat_texts(clean_train_texts, train_lens)
+        clean_test_texts = reformat_texts(clean_test_texts, test_lens)
+        # Turn them into the original docs
+        clean_train_texts = [[word for sent in text for word in sent] for text in clean_train_texts]
+        clean_test_texts = [[word for sent in text for word in sent] for text in clean_test_texts]
+    save_clean_text(clean_train_texts, clean_test_texts, save_dest=args.save)
 
     # Map the texts to their indicies
     train_texts = [[word_index[word] for word in text] for text in tqdm(train_texts)]

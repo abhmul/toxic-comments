@@ -125,3 +125,9 @@ src/check_similarity\.ipynb
 src2/train_models\.sh
 
 glove/
+
+fasttext/
+
+src2/Untitled\.ipynb
+
+src2/train_build_embeddings\.sh

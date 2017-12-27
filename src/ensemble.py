@@ -8,6 +8,7 @@ parser = argparse.ArgumentParser(description='Train the models.')
 parser.add_argument('-f', '--submission_fnames',required=True, type=str, nargs='+', help='The submission files to ensemble')
 parser.add_argument('-w', '--weights', type=float, nargs='+', help='The weights for each submission file ' +
                                                                    '(default: uniform weighting).')
+parser.add_argument('--custom_name', default=None, help="Allows using a custom name for the ensemble output")
 args = parser.parse_args()
 
 
@@ -32,17 +33,20 @@ def ensemble_submissions(submission_fnames, weights=None):
     return ids, combined
 
 
-def create_new_fname(submission_fnames):
+def create_new_fname(submission_fnames, custom_name=None):
     fname_head = "../submissions/"
-    fname_prefix = "ensemble"
-    processed_names = [os.path.splitext(os.path.basename(subname))[0] for subname in submission_fnames]
-    processed_names = set([name[:name.rfind('_')] for name in processed_names])
-    ensemble_name = "-".join([fname_prefix] + sorted(processed_names)) + ".csv"
+    if custom_name is None:
+        fname_prefix = "ensemble"
+        processed_names = [os.path.splitext(os.path.basename(subname))[0] for subname in submission_fnames]
+        processed_names = set([param for name in processed_names for param in name[:name.rfind('_')].split('_')])
+        ensemble_name = fname_prefix + "_".join(sorted(processed_names)) + ".csv"
+    else:
+        ensemble_name = custom_name
     return os.path.join(fname_head, ensemble_name)
 
 
 if __name__ == "__main__":
     print(args.submission_fnames)
     ids, combined = ensemble_submissions(args.submission_fnames, weights=args.weights)
-    ensemble_fname = create_new_fname(args.submission_fnames)
+    ensemble_fname = create_new_fname(args.submission_fnames, custom_name=args.custom_name)
     ToxicData.save_submission(ensemble_fname, ids, combined)

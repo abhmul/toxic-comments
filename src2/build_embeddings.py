@@ -1,10 +1,15 @@
 import os
 import argparse
 import pickle as pkl
+import logging
 
 import numpy as np
-from gensim.models.word2vec import KeyedVectors
+from gensim.models import KeyedVectors, FastText
 from tqdm import tqdm
+
+
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+logger = logging
 
 parser = argparse.ArgumentParser(description='Construct an embeddings matrix for the data.')
 parser.add_argument('-e', '--embeddings_path', required=True, help='Path to embeddings')
@@ -64,11 +69,31 @@ def load_w2v_embeddings(embeddings_path, word_index):
     return embeddings, missing
 
 
+def load_fasttext_embeddings(embeddings_path, word_index):
+    print("Reading in FastText embeddings")
+    try:
+        word_vectors = FastText.load_fasttext_format(embeddings_path)
+    except NotImplementedError:
+        word_vectors = FastText.load(embeddings_path)
+    embedding_dim = word_vectors.vector_size
+    # Now create the embeddings matrix
+    embeddings = np.zeros((len(word_index) + 1, embedding_dim))
+    missing = set()
+    for word, i in tqdm(word_index.items()):
+        if word in word_vectors:
+            embeddings[i] = word_vectors[word]
+        else:
+            missing.add(i)
+    return embeddings, missing
+
+
 def load_embeddings(embeddings_path, word_index, embeddings_type="word2vec"):
     if embeddings_type == "word2vec":
         return load_w2v_embeddings(embeddings_path, word_index)
     elif embeddings_type == "glove":
         return load_glove_embeddings(embeddings_path, word_index)
+    elif embeddings_type == "fasttext":
+        return load_fasttext_embeddings(embeddings_path, word_index)
     raise NotImplementedError("Embeddings type %s is not supported" % embeddings_type)
 
 
