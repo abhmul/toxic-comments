@@ -1,6 +1,7 @@
 from models.cnn_emb import CNNEmb
 from models.rnn_emb import RNNEmb
 from models.han import HAN
+from models.cnn_rnn_emb import CNNRNNEmb
 
 MODELS = {}
 CONFIGS = {}
@@ -33,8 +34,8 @@ cnn_emb_config = {'kernel_size': 3, 'pool_kernel_size': 2, 'pool_stride': 1, 'n1
 # - try training without the fully connected layer
 # - try decreasing num params to 128-64
 # - try making the rnn 2 layers - Scored slightly worse, probably does not affect seriously
-rnn_emb_config = {'rnn_type': 'gru', 'rnn_size': 300, 'rnn_dropout': 0.25, 'fc_size': 256, 'fc_dropout': 0.25,
-                  'num_layers': 1, 'batchnorm': True}
+rnn_emb_config = {'input_dropout': 0.66, 'rnn_type': 'gru', 'rnn_size': 300, 'rnn_dropout': 0.25, 'fc_size': 256,
+                  'fc_dropout': 0.25, 'num_layers': 1, 'batchnorm': True}
 # Reasons this might not work as well?
 # SOLVED: Some kind of issue with the new process_data. Porting over the old data fixed it.
 # TODO
@@ -45,6 +46,14 @@ rnn_emb_config = {'rnn_type': 'gru', 'rnn_size': 300, 'rnn_dropout': 0.25, 'fc_s
 han_config = {'n_hidden_word': 300, 'n_hidden_sent': 256, 'encoder_type': 'gru', 'encoder_dropout': 0.25, 'fc_size': 0,
               'fc_dropout': 0.25, 'batchnorm': True}
 
+cnn_rnn_emb_config = {'input_dropout': 0.25,
+                      # 'kernel_size': 3, 'pool_kernel_size': 2, 'pool_stride': 1, 'n1_filters': 512, 'n2_filters': 256,
+                      # 'conv_dropout': 0.25,
+                      # The conv stuff is left out because the filename is too long
+                      'rnn_type': 'gru', 'rnn_size': 256, 'num_layers': 1, 'rnn_dropout': 0.25,
+                      'fc_size': 256, 'fc_dropout': 0.25,
+                      'batchnorm': True}
+
 register_model("cnn-emb", CNNEmb)
 register_config("cnn-emb", cnn_emb_config)
 
@@ -53,3 +62,6 @@ register_config("rnn-emb", rnn_emb_config)
 
 register_model("han", HAN)
 register_config("han", han_config)
+
+register_model('cnn-rnn-emb', CNNRNNEmb)
+register_config('cnn-rnn-emb', cnn_rnn_emb_config)

@@ -13,7 +13,7 @@ from models.modules import pad_torch_embedded_sequences, unpad_torch_embedded_se
 
 class RNNEmb(AEmbeddingModel):
 
-    def __init__(self, embeddings_path, trainable=False, vocab_size=None, num_features=None, rnn_type='lstm',
+    def __init__(self, embeddings_path, trainable=False, vocab_size=None, num_features=None, input_dropout=0.25, rnn_type='gru',
                  rnn_size=300, num_layers=1, rnn_dropout=0.25, fc_size=256, fc_dropout=0.25, batchnorm=True):
         super(RNNEmb, self).__init__(embeddings_path, trainable=trainable, vocab_size=vocab_size, num_features=num_features)
 
@@ -23,6 +23,8 @@ class RNNEmb(AEmbeddingModel):
         self.fc_dropout = fc_dropout
         self.batchnorm = batchnorm
         self.num_layers = num_layers
+        # Dropout on embeddings
+        self.embeddings_dropout = nn.Dropout(input_dropout) if input_dropout != 1. else lambda x: x
         # RNN Block
         self.rnn_module = AttentionHierarchy(self.num_features, rnn_size, num_layers=num_layers, encoder_type=rnn_type,
                                              encoder_dropout=rnn_dropout, batchnorm=batchnorm)
@@ -55,6 +57,7 @@ class RNNEmb(AEmbeddingModel):
         return Variable(J.from_numpy(y).float(), volatile=volatile)
 
     def forward(self, x):
+        x = [self.embeddings_dropout(sample) for sample in x]  # B x Li x E
         x = self.rnn_module(x)
         x = J.flatten(x)  # B x 300
 

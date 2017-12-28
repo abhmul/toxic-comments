@@ -12,11 +12,11 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 logger = logging
 
 parser = argparse.ArgumentParser(description='Construct an embeddings matrix for the data.')
-parser.add_argument('-e', '--embeddings_path', required=True, help='Path to embeddings')
+parser.add_argument('-e', '--embeddings_path', nargs='+', required=True, help='Path to embeddings')
 parser.add_argument('-w', '--word_index_path', required=True, help='Path to word_index')
 parser.add_argument('-s', '--save', default="../embeddings/",
                     help='Path to directory to save the new embeddings matrix to.')
-parser.add_argument('--embeddings_type', default="word2vec", help="Type of embeddings to load")
+parser.add_argument('--embeddings_type', nargs='+', default=["word2vec"], help="Type of embeddings to load")
 args = parser.parse_args()
 
 
@@ -48,6 +48,7 @@ def load_glove_embeddings(embeddings_path, word_index):
 
     # Figure out which words are missing
     missing = set(range(1, len(word_index) + 1)) - not_missing
+    print("Loaded", len(embeddings), "Glove embeddings with", len(missing), "missing")
     return embeddings, missing
 
 
@@ -66,6 +67,7 @@ def load_w2v_embeddings(embeddings_path, word_index):
             embeddings[i] = word_vectors[word]
         else:
             missing.add(i)
+    print("Loaded", len(embeddings), "Word2vec embeddings with", len(missing), "missing")
     return embeddings, missing
 
 
@@ -84,6 +86,7 @@ def load_fasttext_embeddings(embeddings_path, word_index):
             embeddings[i] = word_vectors[word]
         else:
             missing.add(i)
+    print("Loaded", len(embeddings), "FastText embeddings with", len(missing), "missing")
     return embeddings, missing
 
 
@@ -97,6 +100,14 @@ def load_embeddings(embeddings_path, word_index, embeddings_type="word2vec"):
     raise NotImplementedError("Embeddings type %s is not supported" % embeddings_type)
 
 
+def load_many_embeddings(embeddings_paths, word_index, embeddings_types=("word2vec",)):
+    embeddings, missings = zip(*(load_embeddings(path, word_index, type) for path, type in zip(embeddings_paths, embeddings_types)))
+    print("Loaded", len(embeddings), "embeddings")
+    embeddings = np.concatenate(embeddings, axis=1)
+    missing = set.union(*missings)
+    return embeddings, missing
+
+
 def save_embeddings(embeddings, missing, save_dir="../embeddings/"):
     np.save(os.path.join(save_dir, "embeddings.npy"), embeddings)
     print("Saved the embeddings")
@@ -108,6 +119,5 @@ def save_embeddings(embeddings, missing, save_dir="../embeddings/"):
 if __name__ == '__main__':
     with open(args.word_index_path, 'rb') as word_index_file:
         word_index = pkl.load(word_index_file)
-    embeddings_matrix, missing_indicies = load_embeddings(args.embeddings_path, word_index,
-                                                          embeddings_type=args.embeddings_type)
+    embeddings_matrix, missing_indicies = load_many_embeddings(args.embeddings_path, word_index,embeddings_types=args.embeddings_type)
     save_embeddings(embeddings_matrix, missing_indicies, save_dir=args.save)
