@@ -1,3 +1,4 @@
+import os
 import json
 
 
@@ -61,4 +62,4 @@ class Registry(object):
         return selected_models
 
 
-registry = Registry("model_configurations.json")
+registry = Registry("registry/model_configurations.json")

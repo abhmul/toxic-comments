@@ -1,6 +1,46 @@
-{"rnn-emb":
-  {"0":
-    {"embeddings_name": "fasttext", "rnn_type": "gru", "rnn_size": 300, "rnn_dropout": 0.25, "fc_size": 256, "fc_dropout": 0.5, "num_layers": 2,
-      "batchnorm": true, "att_type": "drelu", "dense": true}
+{
+  "rnn-emb": {
+    "0": {
+      "embeddings_name": "fasttext",
+      "rnn_type": "gru",
+      "rnn_size": 300,
+      "rnn_dropout": 0.25,
+      "fc_size": 256,
+      "fc_dropout": 0.5,
+      "num_layers": 2,
+      "batchnorm": true,
+      "att_type": "drelu",
+      "dense": true
+    }
+  },
+
+  "cnn-emb": {
+    "0": {
+      "embeddings_name": "glove",
+      "conv_layers": [
+        {
+          "n_input": 300, "n_output": 512, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "input_dropout": 0.25, "dropout": 0.25
+        }, {
+          "n_input": 512, "n_output": 256, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.25
+        }, {
+          "n_input": 256, "n_output": 256, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.25
+        }, {
+          "n_input": 256, "n_output": 128, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.25
+        }
+      ],
+      "k": 5,
+      "fc_layers": [
+        {
+          "n_input": 640, "n_output": 128, "activation": "relu", "batchnorm": true, "input_dropout": 0.5
+        }, {
+          "n_input": 128, "n_output": 6, "activation": "linear", "input_dropout": 0.5
+        }
+      ]
+    }
   }
+
 }

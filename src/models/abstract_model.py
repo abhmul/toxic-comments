@@ -10,7 +10,7 @@ import pyjet.backend as J
 
 
 def fix_embeddings_name(embeddings_name):
-    return os.path.join("..", "emeddings", embeddings_name + "/")
+    return os.path.join("..", "embeddings", embeddings_name + "/")
 
 
 class AEmbeddingModel(SLModel):

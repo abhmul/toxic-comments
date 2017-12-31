@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 import numpy as np
 import argparse
 
@@ -31,7 +30,7 @@ np.random.seed(SEED)
 # Params
 EPOCHS = args.epochs
 
-TRAIN_ID = args.model + "_" + SEED
+TRAIN_ID = args.model + "_" + str(SEED)
 print("Training model with id:", TRAIN_ID)
 MODEL_FILE = "../models/" + TRAIN_ID + ".state"
 SUBMISSION_FILE = "../submissions/" + TRAIN_ID + ".csv"
