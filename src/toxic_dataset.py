@@ -1,22 +1,22 @@
-from pyjet.data import NpDataset, Dataset
+from pyjet.data import NpDataset
 import numpy as np
 import pickle as pkl
 import pandas as pd
 
 LABEL_NAMES = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
 
+
 class ToxicData(object):
 
-    def __init__(self, train_path, test_path, embeddings_path="", word_to_id_path=""):
+    def __init__(self, train_path, test_path, word_index_path=""):
         self.train_path = train_path
         self.test_path = test_path
-        self.embeddings_path = embeddings_path
-        self.word_to_id_path = word_to_id_path
+        self.word_index = word_index_path
 
     @staticmethod
     def load_supervised(data):
         ids = data["ids"]
-        text = data["data"]
+        text = data["texts"]
         if "labels" in data:
             labels = data["labels"]
         else:
@@ -41,60 +41,11 @@ class ToxicData(object):
     def load_test(self):
         return self.load_supervised(np.load(self.test_path))
 
-    def embed(self, dataset, parsed_sent=False, logger=None):
-        assert self.embeddings_path, "Cannot embed without an embeddings path."
-        embeddings = np.load(self.embeddings_path)
-        return EmbeddingDataset(embeddings, dataset, parsed_sent=parsed_sent, logger=logger)
-
     def load_dictionary(self):
-        with open(self.word_to_id_path, "rb") as mapping:
-            word_to_id = pkl.load(mapping)
-        id_to_word = {word_to_id[w]: w for w in word_to_id}
-        return word_to_id, id_to_word
-
-
-class EmbeddingDataset(Dataset):
-
-    def __init__(self, embeddings, dataset, parsed_sent=False, logger=None):
-        self.embeddings = embeddings
-        self.num_features = self.embeddings.shape[1]
-        self.dataset = dataset
-        self.parsed_sent = parsed_sent
-        self.logger = logger
-        print(self.logger)
-        try:
-            self.output_labels = self.dataset.output_labels
-        except AttributeError:
-            self.output_labels = False
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def create_batch(self, batch_indicies):
-        # Grab the batch from the underlying dataset
-        x_batch = self.dataset.create_batch(batch_indicies)
-        # Split up the labels and samples if necessary
-        if self.output_labels:
-            x_batch, y_batch = x_batch
-
-        # transpose so it is channels x words
-        if self.parsed_sent:
-            # Each sample is a list of embedded sentences sorted by length]
-            x_batch = [[self.embeddings[sent] for sent in sample if len(sent) > 0]
-                       for sample in x_batch]
-        else:
-            # Each batch is a list of docs sorted by length
-            x_batch = [self.embeddings[sample] for sample in x_batch]
-        # Return the batch
-        if self.output_labels:
-            return x_batch, y_batch
-        return x_batch
-
-    def validation_split(self, split=0.2, shuffle=True, seed=None):
-        train_dataset, val_dataset = self.dataset.validation_split(
-            split, shuffle, seed)
-        train_embed_dataset = EmbeddingDataset(
-            self.embeddings, train_dataset, parsed_sent=self.parsed_sent, logger=self.logger)
-        val_embed_dataset = EmbeddingDataset(
-            self.embeddings, val_dataset, parsed_sent=self.parsed_sent, logger=self.logger)
-        return train_embed_dataset, val_embed_dataset
+        with open(self.word_index, "rb") as mapping:
+            word_index = pkl.load(mapping)
+        vocab = [None]*len(word_index)
+        vocab[0] = "<PAD>"
+        for word, index in word_index.items():
+            vocab[index] = word
+        return word_index, vocab

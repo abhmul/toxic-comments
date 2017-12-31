@@ -102,32 +102,30 @@ ENV/
 
 \.idea/
 
-input/
+# deprecated stuff
+old_*/
 
+# Input data
+input/
 processed_input/
 
+# Saved models
 *.state
 
+# pretrained embeddings
 word2vec/
-
-submissions/
-
-embeddings/
-
-old_processed_input/
-
-src/train_models\.sh
-
-src/process_data\.sh
-
-src/check_similarity\.ipynb
-
-src2/train_models\.sh
-
 glove/
-
 fasttext/
 
-src2/Untitled\.ipynb
+# Kaggle Submissions
+submissions/
 
-src2/train_build_embeddings\.sh
+# Processed Embeddings
+embeddings/
+
+# Any shell scripts or Jupyter Notebooks
+src/*.sh
+src/*.ipynb
+
+# A reference file for the best ensemble
+best_ensemble\.txt

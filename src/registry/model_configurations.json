@@ -1,0 +1,6 @@
+{"rnn-emb":
+  {"0":
+    {"embeddings_name": "fasttext", "rnn_type": "gru", "rnn_size": 300, "rnn_dropout": 0.25, "fc_size": 256, "fc_dropout": 0.5, "num_layers": 2,
+      "batchnorm": true, "att_type": "drelu", "dense": true}
+  }
+}
