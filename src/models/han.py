@@ -7,135 +7,9 @@ from torchqrnn import QRNN
 
 import pyjet.backend as J
 from models.abstract_model import AEmbeddingModel
-from models.modules import pad_torch_embedded_sequences, unpad_torch_embedded_sequences, pack_torch_embedded_sequences, \
-    unpack_torch_embedded_sequences, pad_numpy_to_length
+from models.modules import pad_torch_embedded_sequences, unpad_torch_embedded_sequences, pad_numpy_to_length, timedistributed_softmax
+from models.layers import AttentionBlock, TimeDistributedLinear
 from registry import registry
-
-
-def timedistributed_softmax(x, return_padded=False):
-    # x comes in as B x Li x F, we compute the softmax over Li for each F
-    # softmax = nn.Softmax2d()
-    x, lens = pad_torch_embedded_sequences(x, pad_value=-float('inf'))  # B x L x F
-    shape = tuple(x.size())
-    assert len(shape) == 3
-    x = F.softmax(x, dim=1)
-    assert tuple(x.size()) == shape
-    if return_padded:
-        return x, lens
-    # Un-pad the tensor and return
-    return unpad_torch_embedded_sequences(x, lens)  # B x Li x F
-
-
-class TimeDistributedLinear(nn.Module):
-
-    def __init__(self, input_size, output_size, num_weights=1, batchnorm=False, bias=True):
-        super(TimeDistributedLinear, self).__init__()
-        self.input_size = input_size
-        self.output_size = output_size
-        self.batchnorm = batchnorm
-        # We have to do this so we can maintain compatibility with older models
-        if num_weights == 1:
-            self.weights = nn.Linear(self.input_size, self.output_size, bias=bias)
-        else:
-            self.weights_list = nn.ModuleList([nn.Linear(self.input_size, self.output_size, bias=bias) for _ in range(num_weights)])
-            self.weights = lambda x: [w(x) for w in self.weights_list]
-        self.bn = nn.BatchNorm1d(
-            self.output_size) if self.batchnorm else None
-
-    def forward(self, x, nonlinearity=lambda x: x):
-        # input comes in as B x Li x I
-        # First we pack the data to run the linear over batch and length
-        x, seq_lens = pack_torch_embedded_sequences(x)  # B*Li x I
-        x = nonlinearity(self.weights(x))  # B*Li x O
-        # unpack the data
-        x = unpack_torch_embedded_sequences(x, seq_lens)
-        if self.batchnorm:
-            # pad the packed output
-            x, seq_lens = pad_torch_embedded_sequences(x)  # B x L x O
-            # Transpose the L and O so the input_size becomes the channels
-            x = x.transpose(1, 2)  # B x O x L
-            x = self.bn(x.contiguous())
-            # Transpose the L and O so we can unpad the padded sequence
-            x = x.transpose(1, 2)  # B x L x O
-
-            x = unpad_torch_embedded_sequences(x, seq_lens)  # B x Li x O
-        return x
-
-
-# noinspection PyCallingNonCallable
-class SimpleAttentionBlock(nn.Module):
-
-    def __init__(self, encoding_size, num_heads=1, batchnorm=False, att_type='tanh'):
-        super(SimpleAttentionBlock, self).__init__()
-        self.encoding_size = encoding_size
-        self.num_heads = num_heads
-        self.batchnorm = batchnorm
-
-        if att_type == 'tanh':
-            self.att_nonlinearity = F.tanh
-            self.num_weights = 1
-        elif att_type == 'relu':
-            self.att_nonlinearity = F.relu
-            self.num_weights = 1
-        elif att_type == 'drelu':
-            self.att_nonlinearity = lambda x_list: F.relu(x_list[0]) - F.relu(x_list[1])
-            self.num_weights = 2
-        elif att_type == 'linear':
-            self.att_nonlinearity = lambda x: x
-            self.num_weights = 1
-        else:
-            raise NotImplementedError()
-
-        self.weights = TimeDistributedLinear(self.encoding_size, self.num_heads, num_weights=self.num_weights, batchnorm=batchnorm)
-
-    def forward(self, encodings):
-        # The input comes in as B x Li x E
-        att = self.weights(encodings, nonlinearity=self.att_nonlinearity)  # B x Li x H
-        return torch.bmm(pad_torch_embedded_sequences(att)[0].transpose(1, 2),
-                         pad_torch_embedded_sequences(encodings)[0])
-
-
-# noinspection PyCallingNonCallable
-class AttentionBlock(nn.Module):
-
-    def __init__(self, encoding_size, hidden_size, num_heads=1, batchnorm=False, att_type='tanh'):
-        super(AttentionBlock, self).__init__()
-
-        self.encoding_size = encoding_size
-        self.hidden_size = hidden_size
-        self.num_heads = num_heads
-        self.batchnorm = batchnorm
-        if att_type == 'tanh':
-            self.att_nonlinearity = F.tanh
-            print("Using tanh for att nonlin")
-            self.hidden_layer = TimeDistributedLinear(self.encoding_size, self.hidden_size, batchnorm=batchnorm)
-            self.context_vector = TimeDistributedLinear(self.hidden_size, self.num_heads, bias=False)
-        elif att_type =='relu':
-            self.att_nonlinearity = F.relu
-            print("Using relu for att nonlin")
-            self.hidden_layer = TimeDistributedLinear(self.encoding_size, self.hidden_size, batchnorm=batchnorm)
-            self.context_vector = TimeDistributedLinear(self.hidden_size, self.num_heads, bias=False)
-        elif att_type == 'drelu':
-            self.att_nonlinearity = lambda x_list: F.relu(x_list[0]) - F.relu(x_list[1])
-            print("Using drelu for att nonlin")
-            self.hidden_layer = TimeDistributedLinear(self.encoding_size, self.hidden_size, num_weights=2, batchnorm=batchnorm)
-            self.context_vector = TimeDistributedLinear(self.hidden_size, self.num_heads, bias=False)
-        elif att_type =='linear':
-            self.att_nonlinearity = lambda x: x
-            print("Not using any att nonlin")
-            # Just use a hidden layer and no context vector
-            self.hidden_layer = TimeDistributedLinear(self.encoding_size, self.num_heads, batchnorm=batchnorm)
-            self.context_vector = lambda x: x
-        else:
-            raise NotImplementedError()
-
-    def forward(self, encoding_pack):
-        # The input comes in as B x Li x E
-        x = self.hidden_layer(encoding_pack, nonlinearity=self.att_nonlinearity)  # B x Li x H
-        att = self.context_vector(x)  # B x Li x K
-        att, _ = timedistributed_softmax(att, return_padded=True)  # B x L x K
-        # bmm(B x K x L, B x L x E) = B x K x E
-        return torch.bmm(att.transpose(1, 2), pad_torch_embedded_sequences(encoding_pack)[0])
 
 
 # noinspection PyCallingNonCallable
@@ -325,7 +199,8 @@ class AttentionHierarchy(nn.Module):
             raise NotImplementedError(encoder_type)
 
         if block_type == 'simple':
-            att_block = SimpleAttentionBlock
+            # att_block = SimpleAttentionBlock
+            raise NotImplementedError(block_type)
         elif block_type == 'featurewise':
             att_block = FeatureWiseAttentionBlock
         else:

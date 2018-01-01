@@ -9,7 +9,7 @@ import pyjet.backend as J
 from models.abstract_model import AEmbeddingModel
 from models.modules import kmax_pooling, pad_torch_embedded_sequences, unpad_torch_embedded_sequences, \
     pad_numpy_to_length
-from models.layers import Conv1dLayer, FullyConnectedLayer
+from models.layers import Conv1dLayer, FullyConnectedLayer, AttentionBlock
 from registry import registry
 
 
@@ -26,7 +26,7 @@ class CNNEmb(AEmbeddingModel):
         # Remove any missing words
         x = [np.array([word for word in sample if word not in self.missing]) for sample in x]
         # If a sample is too short extend it
-        x = [pad_numpy_to_length(sample, length=(self.k + 2)) for sample in x]
+        x = [pad_numpy_to_length(sample, length=(self.k + len(self.conv_layers))) for sample in x]
         # Transpose to get features x length
         return [self.embeddings(Variable(J.from_numpy(sample).long(), volatile=volatile)).transpose(0, 1) for sample in x]
 
@@ -47,4 +47,26 @@ class CNNEmb(AEmbeddingModel):
         return F.sigmoid(self.loss_in)
 
 
+class CNNAtt(CNNEmb):
+    def __init__(self, embeddings_name, conv_layers, att_block, fc_layers, trainable=False, vocab_size=None, num_features=None):
+        super(CNNAtt, self).__init__(embeddings_name, conv_layers, fc_layers, 1, trainable=trainable,
+                                     vocab_size=vocab_size, num_features=num_features)
+        self.att_block = AttentionBlock(**att_block)
+
+    def forward(self, x):
+        for conv_layer in self.conv_layers:
+            x = conv_layer(x)  # B x F x Li
+        # Reshape for the attention
+        x = [seq.transpose(0, 1) for seq in x]
+        x = self.att_block(x)
+        x = J.flatten(x)  # B x F*k
+
+        # Run the fc layer if we have one
+        for fc_layer in self.fc_layers:
+            x = fc_layer(x)
+        self.loss_in = x
+        return F.sigmoid(self.loss_in)
+
+
 registry.register_model("cnn-emb", CNNEmb)
+registry.register_model("cnn-att", CNNAtt)

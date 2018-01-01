@@ -211,6 +211,20 @@ def multi_bce_with_logits_seq(outputs, targets, size_average=True):
     return bce_with_logits(flat_outputs, flat_targets, size_average=size_average)
 
 
+def timedistributed_softmax(x, return_padded=False):
+    # x comes in as B x Li x F, we compute the softmax over Li for each F
+    # softmax = nn.Softmax2d()
+    x, lens = pad_torch_embedded_sequences(x, pad_value=-float('inf'))  # B x L x F
+    shape = tuple(x.size())
+    assert len(shape) == 3
+    x = F.softmax(x, dim=1)
+    assert tuple(x.size()) == shape
+    if return_padded:
+        return x, lens
+    # Un-pad the tensor and return
+    return unpad_torch_embedded_sequences(x, lens)  # B x Li x F
+
+
 class ConvHead(nn.Module):
 
     def __init__(self, input_depth, n_heads, kernel_size, k=None, dropout=0.2):

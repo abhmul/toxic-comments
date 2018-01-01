@@ -1,44 +1,98 @@
 {
   "rnn-emb": {
-    "0": {
+    "shallow0-glove": {
+      "embeddings_name": "glove",
+      "rnn_layers": [{"n_input": 300, "n_output": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+        "bidirectional": true}],
+      "att_block": {"n_input": 300, "n_output": 1, "batchnorm": true, "att_type": "linear"},
+      "fc_layers": [{"n_input": 300, "n_output": 6, "activation": "linear", "input_dropout": 0.5}]
+    },
+    "shallow1-glove": {
+      "embeddings_name": "glove",
+      "rnn_layers": [{"n_input": 300, "n_output": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "att_block": {"n_input": 300, "n_output": 1, "batchnorm": true, "att_type": "linear"},
+      "fc_layers": [
+        {"n_input": 300, "n_output": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"n_input": 256, "n_output": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow0-fasttext": {
       "embeddings_name": "fasttext",
-      "rnn_type": "gru",
-      "rnn_size": 300,
-      "rnn_dropout": 0.25,
-      "fc_size": 256,
-      "fc_dropout": 0.5,
-      "num_layers": 2,
-      "batchnorm": true,
-      "att_type": "drelu",
-      "dense": true
+      "rnn_layers": [{"n_input": 300, "n_output": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "att_block": {"n_input": 300, "n_output": 1, "batchnorm": true, "att_type": "linear"},
+      "fc_layers": [{"n_input": 300, "n_output": 6, "activation": "linear", "input_dropout": 0.5}]
+    },
+    "shallow1-fasttext": {
+      "embeddings_name": "fasttext",
+      "rnn_layers": [{"n_input": 300, "n_output": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "att_block": {"n_input": 300, "n_output": 1, "batchnorm": true, "att_type": "linear"},
+      "fc_layers": [
+        {"n_input": 300, "n_output": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"n_input": 256, "n_output": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
     }
   },
 
+
   "cnn-emb": {
-    "0": {
+    "shallow0-glove": {
       "embeddings_name": "glove",
       "conv_layers": [
-        {
-          "n_input": 300, "n_output": 512, "kernel_size": 3, "activation": "relu", "pool_type": "max",
-          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "input_dropout": 0.25, "dropout": 0.25
-        }, {
-          "n_input": 512, "n_output": 256, "kernel_size": 3, "activation": "relu", "pool_type": "max",
-          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.25
-        }, {
-          "n_input": 256, "n_output": 256, "kernel_size": 3, "activation": "relu", "pool_type": "max",
-          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.25
-        }, {
-          "n_input": 256, "n_output": 128, "kernel_size": 3, "activation": "relu", "pool_type": "max",
-          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.25
-        }
+        {"n_input": 300, "n_output": 512, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "input_dropout": 0.2, "dropout": 0.2},
+        {"n_input": 512, "n_output": 256, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.2}
+      ],
+      "k": 5,
+      "fc_layers": [{"n_input": 1280, "n_output": 6, "activation": "linear", "input_dropout": 0.5}]
+    },
+    "shallow0-fasttext": {
+      "embeddings_name": "fasttext",
+      "conv_layers": [
+        {"n_input": 300, "n_output": 512, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "input_dropout": 0.2, "dropout": 0.2},
+        {"n_input": 512, "n_output": 256, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.2}
+      ],
+      "k": 5,
+      "fc_layers": [{"n_input": 1280, "n_output": 6, "activation": "linear", "input_dropout": 0.5}]
+    },
+    "deep0-glove": {
+      "embeddings_name": "glove",
+      "conv_layers": [
+        {"n_input": 300, "n_output": 512, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "input_dropout": 0.2, "dropout": 0.2},
+        {"n_input": 512, "n_output": 256, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.2},
+        {"n_input": 256, "n_output": 128, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.2},
+        {"n_input": 128, "n_output": 64, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.2}
       ],
       "k": 5,
       "fc_layers": [
-        {
-          "n_input": 640, "n_output": 128, "activation": "relu", "batchnorm": true, "input_dropout": 0.5
-        }, {
-          "n_input": 128, "n_output": 6, "activation": "linear", "input_dropout": 0.5
-        }
+        {"n_input": 320, "n_output": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"n_input": 256, "n_output": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    }
+  },
+
+
+  "cnn-att": {
+    "shallow0-glove": {
+      "embeddings_name": "glove",
+      "conv_layers": [
+        {"n_input": 300, "n_output": 512, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "input_dropout": 0.2, "dropout": 0.2},
+        {"n_input": 512, "n_output": 256, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.2}
+      ],
+      "att_block": {"n_input": 256, "n_output": 1, "batchnorm": true, "att_type": "linear"},
+      "fc_layers": [
+        {"n_input": 256, "n_output": 6, "activation": "linear", "input_dropout": 0.5}
       ]
     }
   }
