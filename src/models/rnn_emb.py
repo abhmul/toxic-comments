@@ -5,22 +5,25 @@ from torch.autograd import Variable
 
 import pyjet.backend as J
 from models.abstract_model import AEmbeddingModel
-from models.modules import pad_numpy_to_length
-from models.layers import RNNLayer, AttentionBlock, FullyConnectedLayer
+import layers.functions as L
+from layers import RNN, FullyConnected, build_layer
 
 from registry import registry
 
 
 class RNNEmb(AEmbeddingModel):
 
-    def __init__(self, embeddings_name, rnn_layers, fc_layers, att_block,
+    def __init__(self, embeddings_name, rnn_layers, fc_layers, pool,
                  trainable=False, vocab_size=None, num_features=None):
         super(RNNEmb, self).__init__(embeddings_name, trainable=trainable, vocab_size=vocab_size, num_features=num_features)
 
         # RNN Block
-        self.rnn_layers = nn.ModuleList([RNNLayer(**rnn_layer) for rnn_layer in rnn_layers])
-        self.att_block = AttentionBlock(**att_block)
-        self.fc_layers = nn.ModuleList([FullyConnectedLayer(**fc_layer) for fc_layer in fc_layers])
+        self.rnn_layers = nn.ModuleList([RNN(**rnn_layer) for rnn_layer in rnn_layers])
+        self.pool = build_layer(**pool)
+        self.fc_layers = nn.ModuleList([FullyConnected(**fc_layer) for fc_layer in fc_layers])
+
+        # For testing purposes only
+        # self.att = AttentionHierarchy(self.num_features, 300, encoder_dropout=0.25, att_type='linear')
 
         self.min_len = 1
 
@@ -28,7 +31,7 @@ class RNNEmb(AEmbeddingModel):
         # Remove any missing words
         x = [np.array([word for word in sample if word not in self.missing]) for sample in x]
         # If a sample is too short extend it
-        x = [pad_numpy_to_length(sample, length=self.min_len) for sample in x]
+        x = [L.pad_numpy_to_length(sample, length=self.min_len) for sample in x]
         # Transpose to get features x length
         return [self.embeddings(Variable(J.from_numpy(sample).long(), volatile=volatile)) for sample in x]
 
@@ -38,8 +41,10 @@ class RNNEmb(AEmbeddingModel):
     def forward(self, x):
         for rnn_layer in self.rnn_layers:
             x = rnn_layer(x) # B x Li x H
-        x = self.att_block(x)
-        x = J.flatten(x)  # B x k*H
+        x = self.pool(x)
+        # For testing purposes only
+        # x = self.att(x)
+        x = L.flatten(x)  # B x k*H
 
         for fc_layer in self.fc_layers:
             x = fc_layer(x)
@@ -47,4 +52,82 @@ class RNNEmb(AEmbeddingModel):
         return F.sigmoid(self.loss_in)
 
 
+class DPRNN(AEmbeddingModel):
+
+    def __init__(self, embeddings_name, rnn_layers, fc_layers, pool, global_pool, block_size=1,
+                 trainable=False, vocab_size=None, num_features=None, numpy_embeddings=False):
+        super(DPRNN, self).__init__(embeddings_name, trainable=trainable, vocab_size=vocab_size,
+                                    num_features=num_features, numpy_embeddings=numpy_embeddings)
+
+        for rnn_layer in rnn_layers:
+            rnn_layer["n_layers"] = block_size
+        self.rnn_layers = nn.ModuleList([RNN(**rnn_layer) for rnn_layer in rnn_layers])
+        self.pool = build_layer(**pool)
+        self.fc_layers = nn.ModuleList([FullyConnected(**fc_layer) for fc_layer in fc_layers])
+        self.global_pool = build_layer(**global_pool)
+        self.block_size = block_size
+        self.min_len = 1
+
+    def calc_downsize(self, input_size):
+        output_size = input_size
+        for i, rnn_layer in enumerate(self.rnn_layers):
+            if i and i % self.block_size == 0 and i != len(self.rnn_layers):
+                output_size = self.pool.calc_output_size(output_size)
+        return input_size - output_size
+
+    def cast_input_to_torch(self, x, volatile=False):
+        # Remove any missing words
+        x = [np.array([word for word in sample if word not in self.missing]) for sample in x]
+        # If a sample is too short extend it
+        x = [L.pad_numpy_to_length(sample, length=self.min_len+self.calc_downsize(len(sample))) for sample
+             in x]
+        # max_len = max(max(len(seq) for seq in x), 20)
+        # x = np.array([L.pad_numpy_to_length(sample, length=max_len) for sample in x], dtype=int)
+        # Transpose to get features x length
+        return [self.embeddings(Variable(J.from_numpy(sample).long(), volatile=volatile)) for sample in x]
+        # return self.embeddings(Variable(J.from_numpy(x).long(), volatile=volatile))
+
+    def cast_target_to_torch(self, y, volatile=False):
+        return Variable(J.from_numpy(y).float(), volatile=volatile)
+
+    def forward(self, x):
+        residual = x
+        for i, rnn_layer in enumerate(self.rnn_layers):
+            # print(i)
+            x = rnn_layer(x)
+            if i and i % self.block_size == 0 and i != len(self.rnn_layers):
+                assert all(seq_x.size() == seq_residual.size() for seq_x, seq_residual in zip(x, residual))
+                x = [seq_x + seq_residual for seq_x, seq_residual in zip(x, residual)]
+                x = self.pool(x)
+                residual = x
+        x = self.global_pool(x)
+        x = L.flatten(x)  # B x F
+
+        # Run the fc layer if we have one
+        for fc_layer in self.fc_layers:
+            x = fc_layer(x)
+        self.loss_in = x
+        return F.sigmoid(self.loss_in)
+
+        # x = x.transpose(1, 2).contiguous()
+        # residual = x
+        # for i, conv_layer in enumerate(self.conv_layers):
+        #     # print(i)
+        #     x = conv_layer(x)
+        #     if i and i % self.block_size == 0 and i != len(self.conv_layers):
+        #         # print(x.size())
+        #         # print(residual.size())
+        #         assert x.size() == residual.size()
+        #         x = residual + x
+        #         x = self.pool(x)
+        #         residual = x
+        # x = x.transpose(1, 2).contiguous()
+        # x, _ = torch.max(x, dim=1)
+        #
+        # for fc_layer in self.fc_layers:
+        #     x = fc_layer(x)
+        # self.loss_in = x
+        # return F.sigmoid(self.loss_in)
+
 registry.register_model("rnn-emb", RNNEmb)
+registry.register_model("dprnn", DPRNN)

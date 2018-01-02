@@ -78,9 +78,9 @@ class GRUEncoder(Encoder):
         print("Creating GRU cell with %s layers" % num_layers)
         print("GRU encoder has %s hidden neurons, %s drop prob" % (output_encoding_size, encoder_dropout))
         self.dense = dense
-        print("Training a dense rnn")
         input_sizes = [input_encoding_size] + [output_encoding_size]*(num_layers - 1)
         if dense:
+            print("Training a dense rnn")
             input_sizes = [sum(input_sizes[:i+1]) for i in range(len(input_sizes))]
 
         self.encoders = nn.ModuleList([nn.GRU(input_sizes[i], output_encoding_size // 2, num_layers=1, batch_first=True,
@@ -207,7 +207,7 @@ class AttentionHierarchy(nn.Module):
             att_block = AttentionBlock
 
         output_size = input_encoding_size + hidden_size*num_layers if dense else hidden_size
-        self.att = att_block(output_size, hidden_size, num_heads=num_heads, batchnorm=batchnorm, att_type=att_type)
+        self.att = att_block(output_size, num_heads, n_hidden=hidden_size, batchnorm=batchnorm, att_type=att_type)
 
     def forward(self, x):
         # x input is B x Li x I

@@ -1,0 +1,15 @@
+rnn-emb
+- using the extra 256-fc-layer results in the same loss as not (shallow0/1-glove: 0.04466)
+    - Might as well keep it
+- fasttext performs better (0.04250: shallow0-fasttext vs. 0.04466: shallow0-glove)
+    - Discripency occurs due glove's missing words?
+- Data processing plays a key role in performance?
+- global max pooling better than attention (0.04315: shallow2-glove vs. 0.04466: shallow1-glove)
+- global max pooling better than kmax (0.04315: shallow2-glove vs. 0.04436: shallow3-glove)
+- glove slightly better than glove-gensim0 (0.04315: shallow2-glove vs. 0.04358: shallow0-glovegensim0)
+- global max pooling better than attention (0.04315: shallow2-glove vs. 0.04486: shallow4-glove)
+
+cnn-emb
+- fasttext performs better (0.04763: shallow0-fasttext vs. 0.04869: shallow0-glove)
+- shallow performs better (0.04869: shallow0-glove vs. 0.04927: deep0-glove)
+- kmax performs much better (0.04869: shallow0-glove vs. 0.05810: att_shallow0-glove)

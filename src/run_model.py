@@ -1,14 +1,19 @@
+import tensorflow as tf
 import os
 import numpy as np
 import argparse
 
-from pyjet.callbacks import ModelCheckpoint, Plotter, MetricLogger
-from pyjet.data import DatasetGenerator
+import torch
 from torch.nn.functional import binary_cross_entropy_with_logits
 import torch.optim as optim
 
+from pyjet.callbacks import ModelCheckpoint, Plotter, MetricLogger
+from pyjet.data import DatasetGenerator
+
 from toxic_dataset import ToxicData
 from models import load_model
+
+import logging
 
 parser = argparse.ArgumentParser(description='Run the models.')
 parser.add_argument('-m', '--model', required=True, help='The model name to train')
@@ -22,7 +27,10 @@ parser.add_argument('--epochs', type=int, default=7, help="Number of epochs to t
 parser.add_argument('--plot', action="store_true", help="Number of epochs to train the model for")
 parser.add_argument('--seed', type=int, default=7, help="Seed fo the random number generator")
 parser.add_argument('--load_model', action="store_true", help="Resumes training of the saved model.")
+parser.add_argument('--use_sgd', action="store_true", help="Uses SGD instead of Adam")
 args = parser.parse_args()
+
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
 SEED = args.seed
 np.random.seed(SEED)
@@ -62,7 +70,10 @@ def train(toxic_data):
         print("Loading the model to resume training")
         model.load_state(MODEL_FILE)
     # And the optimizer
-    optimizer = optim.Adam(param for param in model.parameters() if param.requires_grad)
+    if args.use_sgd:
+        optimizer = optim.SGD([param for param in model.parameters() if param.requires_grad], lr=0.01, momentum=0.9)
+    else:
+        optimizer = optim.Adam(param for param in model.parameters() if param.requires_grad)
 
     # And finally train
     tr_logs, val_logs = model.fit_generator(traingen, steps_per_epoch=traingen.steps_per_epoch,
