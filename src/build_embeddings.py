@@ -104,7 +104,7 @@ def load_many_embeddings(embeddings_paths, word_index, embeddings_types=("word2v
     embeddings, missings = zip(*(load_embeddings(path, word_index, type) for path, type in zip(embeddings_paths, embeddings_types)))
     print("Loaded", len(embeddings), "embeddings")
     embeddings = np.concatenate(embeddings, axis=1)
-    missing = set.union(*missings)
+    missing = set.intersection(*missings)
     return embeddings, missing
 
 

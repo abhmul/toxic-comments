@@ -8,7 +8,8 @@ import warnings
 
 
 class RNN(nn.Module):
-    def __init__(self, n_input, n_output, rnn_type='gru', n_layers=1, input_dropout=0.0, dropout=0.0, bidirectional=False):
+    def __init__(self, n_input, n_output, rnn_type='gru', n_layers=1, input_dropout=0.0, dropout=0.0,
+                 bidirectional=False, residual=False):
         super(RNN, self).__init__()
         n_output = n_output // 2 if bidirectional else n_output
         if rnn_type == 'gru':
@@ -18,17 +19,23 @@ class RNN(nn.Module):
             self.rnn = nn.LSTM(n_input, n_output, num_layers=n_layers, dropout=dropout, bidirectional=bidirectional,
                                batch_first=True)
         self.input_dropout_p = input_dropout
+        self.residual = residual
         # Logging
         logging.info("Created a{} {} cell with {} input neurons and {} output neurons".format(
             " bidirectional" if bidirectional else "", rnn_type, n_input, n_output))
         logging.info("Using {} layers, {} rnn dropout, {} input dropout".format(n_layers, dropout, input_dropout))
+        logging.info("Using {} residual connection".format("a" if residual else "no"))
 
     def forward(self, x):
         if self.input_dropout_p:
             x = [F.dropout(sample.unsqueeze(0), p=self.input_dropout_p, training=self.training).squeeze(0) for sample in
                  x]
         x, seq_lens = L.pad_torch_embedded_sequences(x)  # B x L x I
+        if self.residual:
+            residual = x
         x, _ = self.rnn(x)
+        if self.residual:
+            x = residual + x
         x = L.unpad_torch_embedded_sequences(x, seq_lens)  # B x Li x H
         return x
 

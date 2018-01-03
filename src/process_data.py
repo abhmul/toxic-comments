@@ -6,12 +6,14 @@ import argparse
 import pickle as pkl
 from functools import partial
 from tqdm import tqdm
+import string
 
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
 
 from keras.preprocessing.text import Tokenizer, text_to_word_sequence
+from sklearn.feature_extraction.text import CountVectorizer
 
 parser = argparse.ArgumentParser(description='Clean and tokenize the data.')
 parser.add_argument('-d', '--data', default="../input/", help='Path to the Toxic data')
@@ -20,14 +22,16 @@ parser.add_argument('--parse_sent', action='store_true', help='Stores the data w
 parser.add_argument('--remove_stopwords', action='store_true', help='Removes the stop words from the data')
 parser.add_argument('--keep_special_chars', action='store_true', help='Keeps special characters in the data')
 parser.add_argument('--keep_numbers', action='store_true', help='Keeps number digits in the data')
+parser.add_argument('--substitute_special_chars', action='store_true', help='Substitutes the special chars for \1')
 parser.add_argument('--stem_words', action='store_true', help='Keeps number digits in the data')
 parser.add_argument('--max_nb_words', type=int, default=100000, help='Maximum number of words to keep in the data. ' +
                                                                      'Set to -1 to keep all words')
 parser.add_argument('--nltk_tokenize', action='store_true', help="Uses the nltk punkt word tokenizer.")
+parser.add_argument('--use_sklearn', action='store_true', help="Uses sklearn tokenizer and doesn't clean.")
 
 LABEL_NAMES = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
 # Regex to remove all Non-Alpha Numeric and space
-SPECIAL_CHARS = re.compile(r'[^a-z\d ]', re.IGNORECASE)
+SPECIAL_CHARS = re.compile(r'([^a-z\d ])', re.IGNORECASE)
 # regex to replace all numerics
 NUMBERS = re.compile(r'\d+', re.IGNORECASE)
 
@@ -77,7 +81,7 @@ def reformat_texts(flat_texts, text_lens):
     return texts
 
 
-def clean_text(text, remove_stopwords=False, remove_special_chars=True, replace_numbers=True, stem_words=False):
+def clean_text(text, remove_stopwords=False, substitute_special_chars=False, remove_special_chars=True, replace_numbers=True, stem_words=False):
     # Clean the text, with the option to remove stopwords and to stem words.
     # Convert words to lower case
     text = text.lower()
@@ -87,6 +91,10 @@ def clean_text(text, remove_stopwords=False, remove_special_chars=True, replace_
         stops = set(stopwords.words("english"))
         text = [w for w in text if w not in stops]
         text = " ".join(text)
+
+    # Substitute special chars
+    if substitute_special_chars:
+        text = SPECIAL_CHARS.sub(r' \1 ', text)
 
     # Remove Special Characters
     if remove_special_chars:
@@ -134,8 +142,9 @@ def tokenize(train_texts, test_texts, tokenize_func=None, max_nb_words=100000):
     return train_texts, test_texts, tokenizer.word_index
 
 
-def process_texts(train_texts, test_texts, parse_sent=False, remove_stopwords=False, remove_special_chars=True,
-                  replace_numbers=True, stem_words=False, tokenize_func=None, max_nb_words=100000):
+def process_texts(train_texts, test_texts, parse_sent=False, remove_stopwords=False, substitute_special_chars=False,
+                  remove_special_chars=True, replace_numbers=True, stem_words=False, tokenize_func=None,
+                  max_nb_words=100000):
     # Parse out the sentences if we need to
     if parse_sent:
         sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
@@ -145,7 +154,8 @@ def process_texts(train_texts, test_texts, parse_sent=False, remove_stopwords=Fa
 
     # Clean the texts
     print("Cleaning the texts...")
-    clean_func = partial(clean_text, remove_stopwords=remove_stopwords, remove_special_chars=remove_special_chars,
+    clean_func = partial(clean_text, remove_stopwords=remove_stopwords, substitute_special_chars=substitute_special_chars,
+                         remove_special_chars=remove_special_chars,
                          replace_numbers=replace_numbers, stem_words=stem_words)
     train_texts = clean(train_texts, clean_func)
     test_texts = clean(test_texts, clean_func)
@@ -203,6 +213,7 @@ if __name__ == "__main__":
     tokenize_func = nltk.tokenize.word_tokenize if args.nltk_tokenize else None
     train_texts, test_texts, word_index = process_texts(train_texts, test_texts, parse_sent=args.parse_sent,
                                                         remove_stopwords=args.remove_stopwords,
+                                                        substitute_special_chars=args.substitute_special_chars,
                                                         remove_special_chars=(not args.keep_special_chars),
                                                         replace_numbers=(not args.keep_numbers),
                                                         stem_words=args.stem_words, tokenize_func=tokenize_func,

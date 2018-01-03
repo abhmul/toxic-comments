@@ -8,6 +8,7 @@ rnn-emb
 - global max pooling better than kmax (0.04315: shallow2-glove vs. 0.04436: shallow3-glove)
 - glove slightly better than glove-gensim0 (0.04315: shallow2-glove vs. 0.04358: shallow0-glovegensim0)
 - global max pooling better than attention (0.04315: shallow2-glove vs. 0.04486: shallow4-glove)
+- gru better than lstm (0.4032: shallow3-fasttext vs 0.4103: shallow1-fasttext)
 
 cnn-emb
 - fasttext performs better (0.04763: shallow0-fasttext vs. 0.04869: shallow0-glove)

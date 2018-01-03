@@ -14,8 +14,9 @@ from registry import registry
 class RNNEmb(AEmbeddingModel):
 
     def __init__(self, embeddings_name, rnn_layers, fc_layers, pool,
-                 trainable=False, vocab_size=None, num_features=None):
-        super(RNNEmb, self).__init__(embeddings_name, trainable=trainable, vocab_size=vocab_size, num_features=num_features)
+                 trainable=False, vocab_size=None, num_features=None, numpy_embeddings=False):
+        super(RNNEmb, self).__init__(embeddings_name, trainable=trainable, vocab_size=vocab_size,
+                                     num_features=num_features, numpy_embeddings=numpy_embeddings)
 
         # RNN Block
         self.rnn_layers = nn.ModuleList([RNN(**rnn_layer) for rnn_layer in rnn_layers])
@@ -24,7 +25,6 @@ class RNNEmb(AEmbeddingModel):
 
         # For testing purposes only
         # self.att = AttentionHierarchy(self.num_features, 300, encoder_dropout=0.25, att_type='linear')
-
         self.min_len = 1
 
     def cast_input_to_torch(self, x, volatile=False):
@@ -40,7 +40,7 @@ class RNNEmb(AEmbeddingModel):
 
     def forward(self, x):
         for rnn_layer in self.rnn_layers:
-            x = rnn_layer(x) # B x Li x H
+            x = rnn_layer(x)  # B x Li x H
         x = self.pool(x)
         # For testing purposes only
         # x = self.att(x)
