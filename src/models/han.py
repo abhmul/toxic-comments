@@ -80,9 +80,9 @@ from registry import registry
 
 class HAN(AEmbeddingModel):
 
-    def __init__(self, embeddings_path, word_layers, word_pool, sent_layers, sent_pool, fc_layers,
+    def __init__(self, embeddings_name, word_layers, word_pool, sent_layers, sent_pool, fc_layers,
                  trainable=False, vocab_size=None, num_features=None, numpy_embeddings=False):
-        super(HAN, self).__init__(embeddings_path, trainable=trainable, vocab_size=vocab_size,
+        super(HAN, self).__init__(embeddings_name, trainable=trainable, vocab_size=vocab_size,
                                   num_features=num_features, numpy_embeddings=numpy_embeddings)
 
         self.word_layers = nn.ModuleList([build_layer(**word_layer) for word_layer in word_layers])

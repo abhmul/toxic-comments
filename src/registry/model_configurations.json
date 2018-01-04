@@ -208,8 +208,8 @@
 
 
   "han": {
-    "shallow0-fasttext": {
-      "embeddings_name": "fasttext_nbsvm_kernel",
+    "shallow0-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel_sent",
       "word_layers": [{"name": "rnn", "n_input": 300, "n_output": 300, "rnn_type": "gru", "input_dropout": 0.25,
         "dropout": 0.25, "bidirectional": true}],
       "word_pool": {"name": "global-maxpool"},
@@ -219,6 +219,54 @@
       "fc_layers": [
         {"n_input": 300, "n_output": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
         {"n_input": 256, "n_output": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow1-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel_sent",
+      "word_layers": [{"name": "rnn", "n_input": 300, "n_output": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "word_pool": {"name": "global-maxpool"},
+      "sent_layers": [{"name": "rnn", "n_input": 100, "n_output": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "sent_pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"n_input": 100, "n_output": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow2-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel_sent",
+      "word_layers": [{"name": "rnn", "n_input": 300, "n_output": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "word_pool": {"name": "attention", "n_input": 100, "n_output": 1},
+      "sent_layers": [{"name": "rnn", "n_input": 100, "n_output": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "sent_pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"n_input": 100, "n_output": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow3-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel_sent",
+      "word_layers": [{"name": "rnn", "n_input": 300, "n_output": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "word_pool": {"name": "attention", "n_input": 100, "n_output": 1},
+      "sent_layers": [{"name": "rnn", "n_input": 100, "n_output": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "sent_pool": {"name": "attention", "n_input": 100, "n_output": 1},
+      "fc_layers": [
+        {"n_input": 100, "n_output": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow4-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel_sent",
+      "word_layers": [{"name": "rnn", "n_input": 300, "n_output": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "word_pool": {"name": "context-attention", "n_input": 100, "n_output": 1, "batchnorm": false},
+      "sent_layers": [{"name": "rnn", "n_input": 100, "n_output": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "sent_pool": {"name": "context-attention", "n_input": 100, "n_output": 1, "batchnorm": false},
+      "fc_layers": [
+        {"n_input": 100, "n_output": 6, "activation": "linear", "input_dropout": 0.5}
       ]
     }
   },
