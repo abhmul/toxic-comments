@@ -55,5 +55,45 @@
     ],
     "weights": null,
     "score": 0.038
+  },
+  "gru-combined-0" : {
+    "files": [
+      "rnn-emb_shallow0-combined-nbsvm_7", "rnn-emb_shallow0-combined-nbsvm_83601",
+      "rnn-emb_shallow0-combined-nbsvm_156234", "rnn-emb_shallow0-combined-nbsvm_786987",
+      "rnn-emb_shallow0-combined-nbsvm_890932", "rnn-emb_shallow0-combined-nbsvm_19912523"
+    ],
+    "weights": null,
+    "score": 0.039
+  },
+  "han-gru-fasttext-combined-0": {
+    "files": [
+      "han_shallow1-fasttext-nbsvm_7", "han_shallow1-fasttext-nbsvm_19912523","han_shallow1-fasttext-nbsvm_786987",
+      "han_shallow1-fasttext-nbsvm_83601", "han_shallow1-fasttext-nbsvm_890932", "han_shallow1-fasttext-nbsvm_156234",
+      "rnn-emb_shallow3-fasttext-nbsvm_7", "rnn-emb_shallow3-fasttext-nbsvm_83601",
+      "rnn-emb_shallow3-fasttext-nbsvm_156234", "rnn-emb_shallow3-fasttext-nbsvm_786987",
+      "rnn-emb_shallow3-fasttext-nbsvm_890932", "rnn-emb_shallow3-fasttext-nbsvm_19912523",
+      "rnn-emb_shallow0-combined-nbsvm_7", "rnn-emb_shallow0-combined-nbsvm_83601",
+      "rnn-emb_shallow0-combined-nbsvm_156234", "rnn-emb_shallow0-combined-nbsvm_786987",
+      "rnn-emb_shallow0-combined-nbsvm_890932", "rnn-emb_shallow0-combined-nbsvm_19912523"
+    ],
+    "weights": null,
+    "score": 0.038
+  },
+  "han-gru-fasttext-combined-1": {
+    "files": [
+      "han_shallow1-fasttext-nbsvm_7", "han_shallow1-fasttext-nbsvm_19912523","han_shallow1-fasttext-nbsvm_786987",
+      "han_shallow1-fasttext-nbsvm_83601", "han_shallow1-fasttext-nbsvm_890932", "han_shallow1-fasttext-nbsvm_156234",
+      "rnn-emb_shallow3-fasttext-nbsvm_7", "rnn-emb_shallow3-fasttext-nbsvm_83601",
+      "rnn-emb_shallow3-fasttext-nbsvm_156234", "rnn-emb_shallow3-fasttext-nbsvm_786987",
+      "rnn-emb_shallow3-fasttext-nbsvm_890932", "rnn-emb_shallow3-fasttext-nbsvm_19912523",
+      "rnn-emb_shallow0-combined-nbsvm_7", "rnn-emb_shallow0-combined-nbsvm_83601",
+      "rnn-emb_shallow0-combined-nbsvm_156234", "rnn-emb_shallow0-combined-nbsvm_786987",
+      "rnn-emb_shallow0-combined-nbsvm_890932", "rnn-emb_shallow0-combined-nbsvm_19912523",
+      "han_shallow6-fasttext-nbsvm_7", "han_shallow6-fasttext-nbsvm_83601",
+      "han_shallow6-fasttext-nbsvm_156234", "han_shallow6-fasttext-nbsvm_786987",
+      "han_shallow6-fasttext-nbsvm_890932", "han_shallow6-fasttext-nbsvm_19912523"
+    ],
+    "weights": null,
+    "score": 0.038
   }
 }
