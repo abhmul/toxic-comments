@@ -1,9 +1,10 @@
-import tensorflow as tf
+import torch
+
+
 import os
 import numpy as np
 import argparse
 
-import torch
 from torch.nn.functional import binary_cross_entropy_with_logits
 import torch.optim as optim
 

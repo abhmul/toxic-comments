@@ -11,7 +11,7 @@ class Pool1d(nn.Module):
 
     def __init__(self, pool_type, kernel_size, stride=None, padding='same', dilation=1):
         super(Pool1d, self).__init__()
-        padding = (kernel_size - stride) // 2 if padding == 'same' else padding
+        padding = (kernel_size - 1) // 2 if padding == 'same' else padding
         if dilation != 1:
             raise NotImplementedError("Dilation: %s" % dilation)
         pool_func = utils.get_pool_type(pool_type)
@@ -25,7 +25,7 @@ class Pool1d(nn.Module):
                                                                                                   padding))
 
     def calc_output_size(self, input_size):
-        output_size = (input_size - self.kernel_size + 2 * self.padding) // self.stride + 1
+        output_size = (input_size - self.dilation * (self.kernel_size - 1) + 2 * self.padding - 1) // self.stride + 1
         return output_size
 
     def forward(self, x):

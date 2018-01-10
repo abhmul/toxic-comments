@@ -8,21 +8,21 @@ import warnings
 
 
 class RNN(nn.Module):
-    def __init__(self, n_input, n_output, rnn_type='gru', n_layers=1, input_dropout=0.0, dropout=0.0,
+    def __init__(self, input_size, output_size, rnn_type='gru', n_layers=1, input_dropout=0.0, dropout=0.0,
                  bidirectional=False, residual=False):
         super(RNN, self).__init__()
-        n_output = n_output // 2 if bidirectional else n_output
+        output_size = output_size // 2 if bidirectional else output_size
         if rnn_type == 'gru':
-            self.rnn = nn.GRU(n_input, n_output, num_layers=n_layers, dropout=dropout, bidirectional=bidirectional,
+            self.rnn = nn.GRU(input_size, output_size, num_layers=n_layers, dropout=dropout, bidirectional=bidirectional,
                               batch_first=True)
         elif rnn_type == 'lstm':
-            self.rnn = nn.LSTM(n_input, n_output, num_layers=n_layers, dropout=dropout, bidirectional=bidirectional,
+            self.rnn = nn.LSTM(input_size, output_size, num_layers=n_layers, dropout=dropout, bidirectional=bidirectional,
                                batch_first=True)
         self.input_dropout_p = input_dropout
         self.residual = residual
         # Logging
         logging.info("Created a{} {} cell with {} input neurons and {} output neurons".format(
-            " bidirectional" if bidirectional else "", rnn_type, n_input, n_output))
+            " bidirectional" if bidirectional else "", rnn_type, input_size, output_size))
         logging.info("Using {} layers, {} rnn dropout, {} input dropout".format(n_layers, dropout, input_dropout))
         logging.info("Using {} residual connection".format("a" if residual else "no"))
 
@@ -41,8 +41,8 @@ class RNN(nn.Module):
 
 
 class Conv1d(nn.Module):
-    def __init__(self, n_input, n_output, kernel_size=3, stride=1, activation='linear', padding='same',
-                 pool_type='no_pool', pool_padding='same', pool_kernel_size=2, pool_stride=1,
+    def __init__(self, input_size, output_size, kernel_size=3, stride=1, dilation=1, activation='linear', padding='same',
+                 pool_type='no_pool', pool_padding='same', pool_kernel_size=2, pool_stride=1, pool_dilation=1,
                  batchnorm=False,
                  input_dropout=0.0, dropout=0.0):
         super(Conv1d, self).__init__()
@@ -50,29 +50,32 @@ class Conv1d(nn.Module):
             raise NotImplementedError("padding: %s" % padding)
         if pool_padding != 'same' and not isinstance(pool_padding, int):
             raise NotImplementedError("pool padding: %s" % pool_padding)
-        padding = (kernel_size - stride) // 2 if padding == 'same' else padding
-        pool_padding = (pool_kernel_size - pool_stride) // 2 if pool_padding == 'same' else pool_padding
+        padding = (kernel_size - 1) // 2 if padding == 'same' else padding
+        pool_padding = (pool_kernel_size - 1) // 2 if pool_padding == 'same' else pool_padding
 
         # Set these as attributes to calculate the output size
         self.padding = padding
         self.kernel_size = kernel_size
         self.stride = stride
+        self.dilation = dilation
         self.pool_padding = pool_padding
-        self. pool_kernel_size = pool_kernel_size
+        self.pool_kernel_size = pool_kernel_size
         self.pool_stride = pool_stride
+        self.pool_dilation = pool_dilation
         self.pool_name = pool_type
 
-        self.conv = nn.Conv1d(n_input, n_output, kernel_size, stride=stride, padding=padding)
+        self.conv = nn.Conv1d(input_size, output_size, kernel_size, stride=stride, padding=padding, dilation=dilation)
         self.activation = utils.get_activation_type(activation)
         self.pool_type = utils.get_pool_type(pool_type)
-        self.pool = self.pool_type(kernel_size=pool_kernel_size, stride=pool_stride, padding=pool_padding)
-        self.bn = nn.BatchNorm1d(n_output) if batchnorm else None
+        self.pool = self.pool_type(kernel_size=pool_kernel_size, stride=pool_stride, padding=pool_padding,
+                                   dilation=pool_dilation)
+        self.bn = nn.BatchNorm1d(output_size) if batchnorm else None
         self.input_dropout_p = input_dropout
         self.dropout_p = dropout
 
         # Logging
         logging.info("Using Conv1d layer with {} input, {} output, {} kernel, {} stride, and {} padding".format(
-            n_input, n_output, kernel_size, stride, padding))
+            input_size, output_size, kernel_size, stride, padding))
         logging.info("Using activation %s" % self.activation.__name__)
         if self.pool_name != "no_pool":
             logging.info("Using pool {} with {} kernel size, {} stride, and {} padding".format(
@@ -83,9 +86,10 @@ class Conv1d(nn.Module):
         logging.info("Using {} input dropout and {} dropout".format(self.input_dropout_p, self.dropout_p))
 
     def calc_output_size(self, input_size):
-        output_size = (input_size - self.kernel_size + 2 * self.padding) // self.stride + 1
+        output_size = (input_size - self.dilation * (self.kernel_size - 1) + 2 * self.padding - 1) // self.stride + 1
         if self.pool_name != "no_pool":
-            output_size = (output_size - self.pool_kernel_size + 2 * self.pool_padding) // self.pool_stride + 1
+            output_size = (output_size - self.pool_dilation * (
+                self.pool_kernel_size - 1) + 2 * self.pool_padding - 1) // self.pool_stride + 1
         return output_size
 
     def forward(self, x):
@@ -109,22 +113,22 @@ class Conv1d(nn.Module):
 
 class FullyConnected(nn.Module):
 
-    def __init__(self, n_input, n_output, bias=True, activation='linear',
+    def __init__(self, input_size, output_size, bias=True, activation='linear',
                  batchnorm=False,
                  input_dropout=0.0, dropout=0.0):
         super(FullyConnected, self).__init__()
-        self.n_input = n_input
-        self.n_output = n_output
+        self.n_input = input_size
+        self.n_output = output_size
         self.activation_name = activation
 
-        self.linear = nn.Linear(n_input, n_output, bias=bias)
+        self.linear = nn.Linear(input_size, output_size, bias=bias)
         self.activation = utils.get_activation_type(activation)
-        self.bn = nn.BatchNorm1d(n_output) if batchnorm else None
+        self.bn = nn.BatchNorm1d(output_size) if batchnorm else None
         self.input_dropout_p = input_dropout
         self.dropout_p = dropout
         # Logging
         logging.info("Using Linear layer with {} input, {} output, and {}".format(
-            n_input, n_output, "bias" if bias else "no bias"))
+            input_size, output_size, "bias" if bias else "no bias"))
         logging.info("Using activation %s" % self.activation.__name__)
         logging.info("Using batchnorm1d" if self.bn is not None else "Not using batchnorm1d")
         logging.info("Using {} input dropout and {} dropout".format(self.input_dropout_p, self.dropout_p))

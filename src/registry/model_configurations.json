@@ -372,92 +372,41 @@
   },
 
   "dpcnn": {
-    "0-glove": {
-      "embeddings_name": "glove",
-      "conv_layers": [
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true, "input_dropout": 0.2},
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true},
-
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true, "input_dropout": 0.2},
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true},
-
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true, "input_dropout": 0.2},
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true},
-
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true, "input_dropout": 0.2},
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true},
-
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true, "input_dropout": 0.2},
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true},
-
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true, "input_dropout": 0.2},
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true},
-
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true, "input_dropout": 0.2},
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true}
-      ],
-      "pool": {"name": "maxpool", "kernel_size": 3, "stride": 2, "padding": "same"},
-      "global_pool": {"name": "global-maxpool"},
-      "block_size": 2,
-      "fc_layers": [{"n_input": 300, "n_output": 6, "activation": "linear", "input_dropout": 0.5}],
-      "numpy_embeddings": true
-    },
     "0-fasttext": {
       "embeddings_name": "fasttext_nbsvm_kernel",
       "conv_layers": [
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true, "input_dropout": 0.2},
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
 
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true, "input_dropout": 0.2},
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
 
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true, "input_dropout": 0.2},
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
 
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true, "input_dropout": 0.2},
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
 
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true, "input_dropout": 0.2},
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
 
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true, "input_dropout": 0.2},
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
 
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true, "input_dropout": 0.2},
-        {"n_input": 300, "n_output": 300, "kernel_size": 3, "activation": "relu", "pool_type": "no_pool",
-          "batchnorm": true}
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true}
       ],
       "pool": {"name": "maxpool", "kernel_size": 3, "stride": 2, "padding": "same"},
       "global_pool": {"name": "global-maxpool"},
       "block_size": 2,
-      "fc_layers": [{"n_input": 300, "n_output": 6, "activation": "linear", "input_dropout": 0.5}],
+      "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.0}],
       "numpy_embeddings": false
     }
   },
