@@ -59,17 +59,16 @@ class CNNEmb(AEmbeddingModel):
         return F.sigmoid(self.loss_in)
 
 
-# TODO This has some kind of invalid pointer issue. Try out on AWS to see if the same issue crops up
-# Seems to have to do with some memory issue?
+class ResidualBlock(nn.Module):
+
+    def __init__(self, *block_layers):
+        super(ResidualBlock, self).__init__()
+        self.block = nn.Sequential(*block_layers)
+        if block_layers[0].input_size != block_layers[-1].output_size:
+            self.shortcut = layers.Conv1D(block_layers[0].input_size, block_layers[-1].output_size, 1, )
+
+
 class DPCNN(AEmbeddingModel):
-
-    activations = {"relu": nn.ReLU,
-                   "linear": None}
-
-    poolings = {
-        "maxpool": nn.MaxPool1d,
-        "avgpool": nn.AvgPool1d,
-    }
 
     def __init__(self, embeddings_name, conv_layers, fc_layers, pool, global_pool, block_size=2,
                  trainable=False, vocab_size=None, num_features=None, numpy_embeddings=False):
@@ -77,6 +76,7 @@ class DPCNN(AEmbeddingModel):
                                     num_features=num_features, numpy_embeddings=numpy_embeddings)
 
         self.conv_layers = nn.ModuleList([layers.Conv1D(**conv_layer) for conv_layer in conv_layers])
+        # self.conv_layers = nn.ModuleList([nn.Conv1d(300, 300, kernel_size=3, padding=1) for conv_layer in conv_layers])
         self.pool = build_pyjet_layer(**pool)
         self.fc_layers = nn.ModuleList([layers.FullyConnected(**fc_layer) for fc_layer in fc_layers])
         self.global_pool = build_pyjet_layer(**global_pool)
@@ -116,11 +116,12 @@ class DPCNN(AEmbeddingModel):
         residual = x
         for i, conv_layer in enumerate(self.conv_layers):
             x = conv_layer(x)
-            if i and (i+1) % self.block_size == 0 and i != len(self.conv_layers)-1:
+            if (i+1) % self.block_size == 0:
                 assert x.size() == residual.size()
                 x = residual + x
-                x = self.pool(x)
-                residual = x
+                if i != len(self.conv_layers) - 1:
+                    x = self.pool(x)
+                    residual = x
         x = x.transpose(1, 2).contiguous()
         x = self.global_pool(x)
         x = L.flatten(x)  # B x F

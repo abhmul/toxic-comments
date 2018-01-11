@@ -79,13 +79,9 @@ class DPRNN(AEmbeddingModel):
         # Remove any missing words
         x = [np.array([word for word in sample if word not in self.missing]) for sample in x]
         # If a sample is too short extend it
-        x = [L.pad_numpy_to_length(sample, length=self.min_len+self.calc_downsize(len(sample))) for sample
-             in x]
-        # max_len = max(max(len(seq) for seq in x), 20)
-        # x = np.array([L.pad_numpy_to_length(sample, length=max_len) for sample in x], dtype=int)
+        x = [L.pad_numpy_to_length(sample, length=20) for sample in x]
         # Transpose to get features x length
         return [self.embeddings(Variable(J.from_numpy(sample).long(), volatile=volatile)) for sample in x]
-        # return self.embeddings(Variable(J.from_numpy(x).long(), volatile=volatile))
 
     def cast_target_to_torch(self, y, volatile=False):
         return Variable(J.from_numpy(y).float(), volatile=volatile)
@@ -95,11 +91,12 @@ class DPRNN(AEmbeddingModel):
         for i, rnn_layer in enumerate(self.rnn_layers):
             # print(i)
             x = rnn_layer(x)
-            if i and i % self.block_size == 0 and i != len(self.rnn_layers):
+            if (i + 1) % self.block_size == 0:
                 assert all(seq_x.size() == seq_residual.size() for seq_x, seq_residual in zip(x, residual))
                 x = [seq_x + seq_residual for seq_x, seq_residual in zip(x, residual)]
-                x = self.pool(x)
-                residual = x
+                if i != len(self.rnn_layers) - 1:
+                    x = self.pool(x)
+                    residual = x
         x = self.global_pool(x)
         x = L.flatten(x)  # B x F
 
@@ -109,25 +106,6 @@ class DPRNN(AEmbeddingModel):
         self.loss_in = x
         return F.sigmoid(self.loss_in)
 
-        # x = x.transpose(1, 2).contiguous()
-        # residual = x
-        # for i, conv_layer in enumerate(self.conv_layers):
-        #     # print(i)
-        #     x = conv_layer(x)
-        #     if i and i % self.block_size == 0 and i != len(self.conv_layers):
-        #         # print(x.size())
-        #         # print(residual.size())
-        #         assert x.size() == residual.size()
-        #         x = residual + x
-        #         x = self.pool(x)
-        #         residual = x
-        # x = x.transpose(1, 2).contiguous()
-        # x, _ = torch.max(x, dim=1)
-        #
-        # for fc_layer in self.fc_layers:
-        #     x = fc_layer(x)
-        # self.loss_in = x
-        # return F.sigmoid(self.loss_in)
 
 registry.register_model("rnn-emb", RNNEmb)
 registry.register_model("dprnn", DPRNN)
