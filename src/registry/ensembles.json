@@ -54,7 +54,7 @@
       "rnn-emb_shallow3-fasttext-nbsvm_890932", "rnn-emb_shallow3-fasttext-nbsvm_19912523"
     ],
     "weights": null,
-    "score": 0.0384
+    "score": 0.0387
   },
   "gru-combined-0" : {
     "files": [
@@ -77,7 +77,7 @@
       "rnn-emb_shallow0-combined-nbsvm_890932", "rnn-emb_shallow0-combined-nbsvm_19912523"
     ],
     "weights": null,
-    "score": 0.0383
+    "score": 0.0386
   },
   "han-gru-fasttext-combined-1": {
     "files": [
@@ -94,7 +94,7 @@
       "han_shallow6-fasttext-nbsvm_890932", "han_shallow6-fasttext-nbsvm_19912523"
     ],
     "weights": null,
-    "score": 0.0380
+    "score": 0.0383
   },
   "han-gru-fasttext-combined-2": {
     "files": [
@@ -114,7 +114,7 @@
       "rnn-emb_shallow6-fasttext-nbsvm_890932", "rnn-emb_shallow6-fasttext-nbsvm_19912523"
     ],
     "weights": null,
-    "score": 0.0382
+    "score": 0.0385
   },
 
   "lstm-fasttext-0": {
@@ -144,6 +144,62 @@
       "rnn-emb_shallow2-fasttext-nbsvm_890932", "rnn-emb_shallow2-fasttext-nbsvm_156234"
     ],
     "weights": null,
+    "score": 0.0384
+  },
+  "han-gru-lstm-fasttext-combined-1": {
+    "files": [
+      "han_shallow1-fasttext-nbsvm_7", "han_shallow1-fasttext-nbsvm_19912523","han_shallow1-fasttext-nbsvm_786987",
+      "han_shallow1-fasttext-nbsvm_83601", "han_shallow1-fasttext-nbsvm_890932", "han_shallow1-fasttext-nbsvm_156234",
+      "rnn-emb_shallow3-fasttext-nbsvm_7", "rnn-emb_shallow3-fasttext-nbsvm_83601",
+      "rnn-emb_shallow3-fasttext-nbsvm_156234", "rnn-emb_shallow3-fasttext-nbsvm_786987",
+      "rnn-emb_shallow3-fasttext-nbsvm_890932", "rnn-emb_shallow3-fasttext-nbsvm_19912523",
+      "rnn-emb_shallow0-combined-nbsvm_7", "rnn-emb_shallow0-combined-nbsvm_83601",
+      "rnn-emb_shallow0-combined-nbsvm_156234", "rnn-emb_shallow0-combined-nbsvm_786987",
+      "rnn-emb_shallow0-combined-nbsvm_890932", "rnn-emb_shallow0-combined-nbsvm_19912523",
+      "han_shallow6-fasttext-nbsvm_7", "han_shallow6-fasttext-nbsvm_83601",
+      "han_shallow6-fasttext-nbsvm_156234", "han_shallow6-fasttext-nbsvm_786987",
+      "han_shallow6-fasttext-nbsvm_890932", "han_shallow6-fasttext-nbsvm_19912523",
+      "rnn-emb_shallow2-fasttext-nbsvm_7", "rnn-emb_shallow2-fasttext-nbsvm_19912523",
+      "rnn-emb_shallow2-fasttext-nbsvm_786987", "rnn-emb_shallow2-fasttext-nbsvm_83601",
+      "rnn-emb_shallow2-fasttext-nbsvm_890932", "rnn-emb_shallow2-fasttext-nbsvm_156234",
+      "rnn-emb_shallow2-combined-nbsvm_7", "rnn-emb_shallow2-combined-nbsvm_19912523",
+      "rnn-emb_shallow2-combined-nbsvm_786987", "rnn-emb_shallow2-combined-nbsvm_83601",
+      "rnn-emb_shallow2-combined-nbsvm_890932", "rnn-emb_shallow2-combined-nbsvm_156234"
+    ],
+    "weights": null,
+    "score": 0.0382
+  },
+  "han-gru-lstm-fasttext-combined-2": {
+    "files": [
+      "han_shallow1-fasttext-nbsvm_7", "han_shallow1-fasttext-nbsvm_19912523","han_shallow1-fasttext-nbsvm_786987",
+      "han_shallow1-fasttext-nbsvm_83601", "han_shallow1-fasttext-nbsvm_890932", "han_shallow1-fasttext-nbsvm_156234",
+      "rnn-emb_shallow3-fasttext-nbsvm_7", "rnn-emb_shallow3-fasttext-nbsvm_83601",
+      "rnn-emb_shallow3-fasttext-nbsvm_156234", "rnn-emb_shallow3-fasttext-nbsvm_786987",
+      "rnn-emb_shallow3-fasttext-nbsvm_890932", "rnn-emb_shallow3-fasttext-nbsvm_19912523",
+      "rnn-emb_shallow0-combined-nbsvm_7", "rnn-emb_shallow0-combined-nbsvm_83601",
+      "rnn-emb_shallow0-combined-nbsvm_156234", "rnn-emb_shallow0-combined-nbsvm_786987",
+      "rnn-emb_shallow0-combined-nbsvm_890932", "rnn-emb_shallow0-combined-nbsvm_19912523",
+      "han_shallow6-fasttext-nbsvm_7", "han_shallow6-fasttext-nbsvm_83601",
+      "han_shallow6-fasttext-nbsvm_156234", "han_shallow6-fasttext-nbsvm_786987",
+      "han_shallow6-fasttext-nbsvm_890932", "han_shallow6-fasttext-nbsvm_19912523",
+      "rnn-emb_shallow2-combined-nbsvm_7", "rnn-emb_shallow2-combined-nbsvm_19912523",
+      "rnn-emb_shallow2-combined-nbsvm_786987", "rnn-emb_shallow2-combined-nbsvm_83601",
+      "rnn-emb_shallow2-combined-nbsvm_890932", "rnn-emb_shallow2-combined-nbsvm_156234"
+    ],
+    "weights": null,
     "score": 0.0381
+  },
+  "gru-lstm-combined-0": {
+    "files": [
+      "rnn-emb_shallow0-combined-nbsvm_7", "rnn-emb_shallow0-combined-nbsvm_83601",
+      "rnn-emb_shallow0-combined-nbsvm_156234", "rnn-emb_shallow0-combined-nbsvm_786987",
+      "rnn-emb_shallow0-combined-nbsvm_890932", "rnn-emb_shallow0-combined-nbsvm_19912523",
+      "rnn-emb_shallow2-combined-nbsvm_7", "rnn-emb_shallow2-combined-nbsvm_19912523",
+      "rnn-emb_shallow2-combined-nbsvm_786987", "rnn-emb_shallow2-combined-nbsvm_83601",
+      "rnn-emb_shallow2-combined-nbsvm_890932", "rnn-emb_shallow2-combined-nbsvm_156234"
+    ],
+    "weights": null,
+    "score": 0.0380
   }
+
 }

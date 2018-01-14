@@ -8,7 +8,7 @@ import argparse
 from torch.nn.functional import binary_cross_entropy_with_logits
 import torch.optim as optim
 
-from pyjet.callbacks import ModelCheckpoint, Plotter, MetricLogger
+from pyjet.callbacks import ModelCheckpoint, Plotter, MetricLogger, LRScheduler
 from pyjet.data import DatasetGenerator
 
 from toxic_dataset import ToxicData
@@ -73,6 +73,7 @@ def train(toxic_data):
     # And the optimizer
     if args.use_sgd:
         optimizer = optim.SGD([param for param in model.parameters() if param.requires_grad], lr=0.01, momentum=0.9)
+        callbacks.append(LRScheduler(optimizer, lambda epoch: 0.01 if epoch < 6 else 0.001))
     else:
         optimizer = optim.Adam(param for param in model.parameters() if param.requires_grad)
 

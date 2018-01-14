@@ -77,17 +77,18 @@ class DPCNN(AEmbeddingModel):
 
         self.conv_layers = nn.ModuleList([layers.Conv1D(**conv_layer) for conv_layer in conv_layers])
         # self.conv_layers = nn.ModuleList([nn.Conv1d(300, 300, kernel_size=3, padding=1) for conv_layer in conv_layers])
+        self.shortcut = nn.Conv1d(self.num_features, self.conv_layers[1].output_size, 1)
         self.pool = build_pyjet_layer(**pool)
         self.fc_layers = nn.ModuleList([layers.FullyConnected(**fc_layer) for fc_layer in fc_layers])
         self.global_pool = build_pyjet_layer(**global_pool)
 
         self.block_size = block_size
         self.min_len = 1
-        self.min_input_len = self.min_len - 1
-        output_len = 0
-        while output_len < self.min_len:
-            self.min_input_len += 1
-            output_len = self.calc_output_size(self.min_input_len)
+        self.min_input_len = 2**(len(self.conv_layers) // block_size - 1)
+        # output_len = 0
+        # while output_len < self.min_len:
+        #     self.min_input_len += 1
+        #     output_len = self.calc_output_size(self.min_input_len)
         logging.info("BLOCK SIZE %s" % self.block_size)
         logging.info("MINIMUM INPUT LEN: %s" % self.min_input_len)
 
@@ -113,7 +114,7 @@ class DPCNN(AEmbeddingModel):
 
     def forward(self, x):
         x = x.transpose(1, 2).contiguous()
-        residual = x
+        residual = self.shortcut(x)
         for i, conv_layer in enumerate(self.conv_layers):
             x = conv_layer(x)
             if (i+1) % self.block_size == 0:

@@ -102,7 +102,7 @@ class HAN(AEmbeddingModel):
         x = [[np.array([word for word in sent if word not in self.missing]) for sent in sample] for sample in x]
         x = [[L.pad_numpy_to_length(sent, length=self.min_len) for sent in sample] for sample in x]
         x = [(sample if len(sample) > 0 else [self.default_sentence]) for sample in x]
-        return [[self.embeddings(Variable(J.from_numpy(sent).long(), volatile=False)) for sent in sample] for sample in x]
+        return [[self.embeddings(Variable(J.from_numpy(sent).long(), volatile=volatile)) for sent in sample] for sample in x]
 
     def cast_target_to_torch(self, y, volatile=False):
         return Variable(torch.from_numpy(y).cuda().float(), volatile=volatile)
