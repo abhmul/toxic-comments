@@ -97,7 +97,7 @@ def clean_text(text, remove_stopwords=False, substitute_special_chars=False, rem
         text = SPECIAL_CHARS.sub(r' \1 ', text)
 
     # Remove Special Characters
-    if remove_special_chars:
+    if remove_special_chars and not substitute_special_chars:
         text = SPECIAL_CHARS.sub('', text)
 
     # Replace Numbers

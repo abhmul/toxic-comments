@@ -10,6 +10,7 @@ import torch.optim as optim
 
 from pyjet.callbacks import ModelCheckpoint, Plotter, MetricLogger, LRScheduler
 from pyjet.data import DatasetGenerator
+import pyjet.backend as J
 
 from toxic_dataset import ToxicData
 from models import load_model
@@ -29,6 +30,7 @@ parser.add_argument('--plot', action="store_true", help="Number of epochs to tra
 parser.add_argument('--seed', type=int, default=7, help="Seed fo the random number generator")
 parser.add_argument('--load_model', action="store_true", help="Resumes training of the saved model.")
 parser.add_argument('--use_sgd', action="store_true", help="Uses SGD instead of Adam")
+parser.add_argument('--embed_lr', type=float, default=1e-3, help="Learning rate for embeddings if using trainable")
 args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -48,9 +50,12 @@ LOG_FILE = "../logs/" + TRAIN_ID + ".txt"
 
 def train(toxic_data):
     ids, dataset = toxic_data.load_train(mode="sup")
+    logging.info("Total Data: %s samples" % len(dataset))
 
     # Split the data
     train_data, val_data = dataset.validation_split(split=args.split, shuffle=True, seed=np.random.randint(2**32))
+    logging.info("Train Data: %s samples" % len(train_data))
+    logging.info("Val Data: %s samples" % len(val_data))
     # And create the generators
     traingen = DatasetGenerator(train_data, batch_size=args.batch_size, shuffle=True, seed=np.random.randint(2**32))
     valgen = DatasetGenerator(val_data, batch_size=args.batch_size, shuffle=True, seed=np.random.randint(2**32))
@@ -71,23 +76,35 @@ def train(toxic_data):
         print("Loading the model to resume training")
         model.load_state(MODEL_FILE)
     # And the optimizer
+
     if args.use_sgd:
-        optimizer = optim.SGD([param for param in model.parameters() if param.requires_grad], lr=0.01, momentum=0.9)
+        optimizer = optim.SGD(model.trainable_params(sgd=False), lr=0.01, momentum=0.9)
         callbacks.append(LRScheduler(optimizer, lambda epoch: 0.01 if epoch < 6 else 0.001))
     else:
-        optimizer = optim.Adam(param for param in model.parameters() if param.requires_grad)
+        optimizer = optim.Adam(model.trainable_params(sgd=False))
+    optimizers = [optimizer]
+    if model.trainable_params(sgd=True):
+        print("Creating SGD optimizer with 0.001 embed lr")
+        optimizers = [optimizer, optim.SGD(model.trainable_params(sgd=True), lr=args.embed_lr)]
+        # optimizers = [optimizer, optim.SparseAdam(model.trainable_params(sgd=True))]
+        print(optimizers[1].param_groups[0]['params'][0])
+    # print(model.embeddings)
+
 
     # And finally train
     tr_logs, val_logs = model.fit_generator(traingen, steps_per_epoch=traingen.steps_per_epoch,
-                                            epochs=EPOCHS, callbacks=callbacks, optimizer=optimizer,
+                                            epochs=EPOCHS, callbacks=callbacks, optimizer=optimizers,
                                             loss_fn=binary_cross_entropy_with_logits, validation_generator=valgen,
                                             validation_steps=valgen.steps_per_epoch)
+    if len(optimizers) > 1:
+        print(optimizers[1].param_groups[0]['params'][0])
 
 
 def test(toxic_data):
     # Create the paths for the data
     ids, test_data = toxic_data.load_test()
     assert not test_data.output_labels
+    logging.info("Test Data: %s samples" % len(test_data))
 
     # And create the generators
     testgen = DatasetGenerator(test_data, batch_size=args.test_batch_size, shuffle=False)

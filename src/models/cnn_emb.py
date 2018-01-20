@@ -76,8 +76,10 @@ class DPCNN(AEmbeddingModel):
                                     num_features=num_features, numpy_embeddings=numpy_embeddings)
 
         self.conv_layers = nn.ModuleList([layers.Conv1D(**conv_layer) for conv_layer in conv_layers])
-        # self.conv_layers = nn.ModuleList([nn.Conv1d(300, 300, kernel_size=3, padding=1) for conv_layer in conv_layers])
-        self.shortcut = nn.Conv1d(self.num_features, self.conv_layers[1].output_size, 1)
+        if self.num_features == self.conv_layers[block_size-1].output_size:
+            self.shortcut = lambda x: x
+        else:
+            self.shortcut = nn.Conv1d(self.num_features, self.conv_layers[1].output_size, 1)
         self.pool = build_pyjet_layer(**pool)
         self.fc_layers = nn.ModuleList([layers.FullyConnected(**fc_layer) for fc_layer in fc_layers])
         self.global_pool = build_pyjet_layer(**global_pool)
