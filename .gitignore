@@ -124,7 +124,8 @@ submissions/
 embeddings/
 
 # Any shell scripts or Jupyter Notebooks
-src/*.sh
+src/train_models.sh
+src/build_embeddings.sh
 src/*.ipynb
 
 # A reference file for the best ensemble
