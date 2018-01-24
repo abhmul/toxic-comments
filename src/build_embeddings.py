@@ -7,6 +7,8 @@ import numpy as np
 from gensim.models import KeyedVectors, FastText
 from tqdm import tqdm
 
+from file_utils import safe_open_dir
+
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 logger = logging
@@ -109,6 +111,7 @@ def load_many_embeddings(embeddings_paths, word_index, embeddings_types=("word2v
 
 
 def save_embeddings(embeddings, missing, save_dir="../embeddings/"):
+    safe_open_dir(save_dir)
     np.save(os.path.join(save_dir, "embeddings.npy"), embeddings)
     print("Saved the embeddings")
     with open(os.path.join(save_dir, "missing.pkl"), 'wb') as missing_file:

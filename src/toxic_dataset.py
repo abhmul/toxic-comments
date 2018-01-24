@@ -2,6 +2,7 @@ import glob
 from pyjet.data import NpDataset, Dataset
 import numpy as np
 import pickle as pkl
+import logging
 import pandas as pd
 
 LABEL_NAMES = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
@@ -16,7 +17,7 @@ class ToxicData(object):
         self.word_index = word_index_path
         # Glob the augmented datasets
         if self.augmented:
-            augmented_paths = glob.glob(augmented_path)
+            self.augmented_paths = glob.glob(augmented_path)
 
 
     @staticmethod
@@ -36,7 +37,15 @@ class ToxicData(object):
         submission.to_csv(submission_fname, index=False)
 
     def load_train_supervised(self):
-        return self.load_supervised(np.load(self.train_path))
+        ids, original_dataset = self.load_supervised(np.load(self.train_path))
+        if self.augmented:
+            aug_datasets = []
+            for aug_path in self.augmented_paths:
+                logging.info('Loading augmented dataset from %s' % aug_path)
+                _, aug_dataset = self.load_supervised(np.load(aug_path))
+                aug_datasets.append(aug_dataset)
+            return ids, MultiNpDatasetAugmenter(original_dataset, *aug_datasets)
+        return ids, original_dataset
 
     def load_train(self, mode="sup"):
         if mode == "sup":
@@ -64,7 +73,7 @@ class MultiNpDatasetAugmenter(Dataset):
         assert all(len(dataset) == len(original_dataset) for dataset in datasets), "Datasets must be of same length"
         assert all(dataset.output_labels == original_dataset.output_labels for dataset in
                    datasets), "Some datasets output labels while others do not."
-        self.datasets = [original_dataset] + datasets
+        self.datasets = [original_dataset] + list(datasets)
         self.original_dataset = original_dataset
         self.n_datasets = len(self.datasets)
         self.output_labels = original_dataset.output_labels
@@ -79,20 +88,25 @@ class MultiNpDatasetAugmenter(Dataset):
         x, y = None, None
         # Create each sub-batch for each sampled dataset
         for i, dataset in enumerate(self.datasets):
-            is_dataset = [dataset_inds == i]
-            subbatch = dataset.create_batch(batch_indicies[is_dataset])
+            is_dataset = dataset_inds == i
+            subbatch_inds = batch_indicies[is_dataset]
+            # Don't do anything if there are no samples from this dataset
+            if len(subbatch_inds) == 0:
+                continue
+            subbatch = dataset.create_batch(subbatch_inds)
+            # logging.info("Dataset %s subbatch is of length %s = %s" % (i, len(subbatch[0]), len(subbatch_inds)))
             # Split the dataset if it has labels with it
             if self.output_labels:
                 xsub, ysub = subbatch
                 # If we haven't initialized the label batch, use the subbatch to infer the size
                 if y is None:
-                    y = np.empty((len(batch_indicies)) + ysub.shape[1:], dtype=ysub.dtype)
+                    y = np.empty((len(batch_indicies),) + ysub.shape[1:], dtype=ysub.dtype)
                 y[is_dataset] = ysub
             else:
                 xsub = subbatch
 
             if x is None:
-                x = np.empty((len(batch_indicies)) + xsub.shape[1:], dtype=xsub.dtype)
+                x = np.empty((len(batch_indicies),) + xsub.shape[1:], dtype=xsub.dtype)
             x[is_dataset] = xsub
         # Yield the final output
         if self.output_labels:

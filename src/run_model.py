@@ -126,9 +126,13 @@ if __name__ == "__main__":
     test_path = os.path.join(args.data, "test.npz")
     aug_path = os.path.join(args.data, "train_aug*.npz")
     dictionary_path = os.path.join(args.data, "word_index.pkl")
+    if args.use_augmented:
+        augmented_path = os.path.join(args.data, "train_aug*.npz")
+    else:
+        augmented_path = ""
 
     # Load the data
-    toxic = ToxicData(train_path, test_path, dictionary_path)
+    toxic = ToxicData(train_path, test_path, dictionary_path, augmented_path=augmented_path)
 
     if args.train:
         train(toxic)

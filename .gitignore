@@ -130,3 +130,7 @@ src/*.ipynb
 
 # A reference file for the best ensemble
 best_ensemble\.txt
+
+src/old_train_models\.sh
+
+src/train_build_embeddings\.sh

@@ -257,6 +257,27 @@
       ],
       "trainable": true
     },
+    "shallow0-combined-aug-nbsvm": {
+      "embeddings_name": "combined_aug_nbsvm_kernel",
+      "rnn_layers": [{"input_size": 900, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.5, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow1-combined-aug-nbsvm": {
+      "embeddings_name": "combined_aug_nbsvm_kernel",
+      "rnn_layers": [{"input_size": 900, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.5, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ],
+      "trainable": true
+    },
     "shallow3-fasttext-noprocess": {
       "embeddings_name": "fasttext_no_process",
       "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
@@ -633,6 +654,65 @@
       "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.5}],
       "numpy_embeddings": false,
       "trainable": false
+    },
+    "0-combined-aug": {
+      "embeddings_name": "combined_aug_nbsvm_kernel",
+      "conv_layers": [
+        {"input_size": 900, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true}
+      ],
+      "pool": {"name": "maxpool", "kernel_size": 3, "stride": 2, "padding": "same"},
+      "global_pool": {"name": "global-maxpool"},
+      "block_size": 2,
+      "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.5}],
+      "numpy_embeddings": false
+    },
+    "1-combined-aug": {
+      "embeddings_name": "combined_aug_nbsvm_kernel",
+      "conv_layers": [
+        {"input_size": 900, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true}
+      ],
+      "pool": {"name": "maxpool", "kernel_size": 3, "stride": 2, "padding": "same"},
+      "global_pool": {"name": "global-maxpool"},
+      "block_size": 2,
+      "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.5}],
+      "numpy_embeddings": false,
+      "trainable": true
     }
   },
 
