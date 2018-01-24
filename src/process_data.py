@@ -184,7 +184,6 @@ def process_texts(train_texts, test_texts, augmentation_texts=tuple(), parse_sen
             new_augmentation_texts.append(aug_text)
         augmentation_texts = new_augmentation_texts
 
-
     # Clean the texts
     logging.info("Cleaning the texts...")
     clean_func = partial(clean_text, remove_stopwords=remove_stopwords, substitute_special_chars=substitute_special_chars,

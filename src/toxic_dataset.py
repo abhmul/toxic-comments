@@ -1,3 +1,4 @@
+import glob
 from pyjet.data import NpDataset, Dataset
 import numpy as np
 import pickle as pkl
@@ -8,10 +9,15 @@ LABEL_NAMES = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity
 
 class ToxicData(object):
 
-    def __init__(self, train_path, test_path, word_index_path=""):
+    def __init__(self, train_path, test_path, word_index_path="", augmented_path=""):
         self.train_path = train_path
         self.test_path = test_path
+        self.augmented = bool(augmented_path)
         self.word_index = word_index_path
+        # Glob the augmented datasets
+        if self.augmented:
+            augmented_paths = glob.glob(augmented_path)
+
 
     @staticmethod
     def load_supervised(data):

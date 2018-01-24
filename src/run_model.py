@@ -31,6 +31,7 @@ parser.add_argument('--seed', type=int, default=7, help="Seed fo the random numb
 parser.add_argument('--load_model', action="store_true", help="Resumes training of the saved model.")
 parser.add_argument('--use_sgd', action="store_true", help="Uses SGD instead of Adam")
 parser.add_argument('--embed_lr', type=float, default=1e-3, help="Learning rate for embeddings if using trainable")
+parser.add_argument('--use_augmented', action='store_true', help="Uses additional augmented datasets")
 args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -122,6 +123,7 @@ if __name__ == "__main__":
     # Create the paths for the data
     train_path = os.path.join(args.data, "train.npz")
     test_path = os.path.join(args.data, "test.npz")
+    aug_path = os.path.join(args.data, "train_aug*.npz")
     dictionary_path = os.path.join(args.data, "word_index.pkl")
 
     # Load the data
