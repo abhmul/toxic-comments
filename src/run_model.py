@@ -138,7 +138,7 @@ def train(toxic_data):
     if args.use_sgd:
         optimizer = optim.SGD(model.trainable_params(sgd=False), lr=0.01, momentum=0.9)
         # callbacks.append(LRScheduler(optimizer, lambda epoch: 0.01 if epoch < 6 else 0.001))
-        callbacks.append(ReduceLROnPlateau(optimizer, monitor='loss', monitor_val=True, patience=1, verbose=1))
+        callbacks.append(ReduceLROnPlateau(optimizer, monitor='loss', monitor_val=True, patience=5, verbose=1))
     else:
         optimizer = optim.Adam(model.trainable_params(sgd=False))
     optimizers = [optimizer]
