@@ -32,7 +32,9 @@ parser.add_argument('--load_model', action="store_true", help="Resumes training 
 parser.add_argument('--use_sgd', action="store_true", help="Uses SGD instead of Adam")
 parser.add_argument('--embed_lr', type=float, default=1e-3, help="Learning rate for embeddings if using trainable")
 parser.add_argument('--use_augmented', action='store_true', help="Uses additional augmented datasets")
+parser.add_argument('--original_prob', type=float, default=0.5, help="Probability of not using an augmented sample")
 parser.add_argument('--kfold', type=int, default=10, help="Runs kfold validation with the input number")
+parser.add_argument('--use_rmsprop', action="store_true", help="Uses RMSProp instead of Adam")
 args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -57,7 +59,7 @@ def create_filenames(train_id):
 def kfold(toxic_data):
     ids, dataset = toxic_data.load_train(mode="sup")
     logging.info("Total Data: %s samples" % len(dataset))
-
+    logging.info("Running %sfold validation" % args.kfold)
     # Split the data
     for i, (train_data, val_data) in enumerate(dataset.kfold(k=args.kfold, shuffle=True, seed=np.random.randint(2 ** 32))):
         logging.info("Train Data: %s samples" % len(train_data))
@@ -89,6 +91,9 @@ def kfold(toxic_data):
             optimizer = optim.SGD(model.trainable_params(sgd=False), lr=0.01, momentum=0.9)
             # callbacks.append(LRScheduler(optimizer, lambda epoch: 0.01 if epoch < 6 else 0.001))
             callbacks.append(ReduceLROnPlateau(optimizer, monitor='loss', monitor_val=True, patience=1, verbose=1))
+        elif args.use_rmsprop:
+            logging.info("Using rmsprop")
+            optimizer = optim.RMSprop(model.trainable_params(sgd=False))
         else:
             optimizer = optim.Adam(model.trainable_params(sgd=False))
         optimizers = [optimizer]
@@ -191,7 +196,8 @@ if __name__ == "__main__":
         augmented_path = ""
 
     # Load the data
-    toxic = ToxicData(train_path, test_path, dictionary_path, augmented_path=augmented_path)
+    toxic = ToxicData(train_path, test_path, dictionary_path, augmented_path=augmented_path,
+                      original_prob=args.original_prob)
 
     if args.train:
         if args.kfold:

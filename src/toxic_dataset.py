@@ -10,7 +10,7 @@ LABEL_NAMES = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity
 
 class ToxicData(object):
 
-    def __init__(self, train_path, test_path, word_index_path="", augmented_path=""):
+    def __init__(self, train_path, test_path, word_index_path="", augmented_path="", original_prob=None):
         self.train_path = train_path
         self.test_path = test_path
         self.augmented = bool(augmented_path)
@@ -18,6 +18,7 @@ class ToxicData(object):
         # Glob the augmented datasets
         if self.augmented:
             self.augmented_paths = glob.glob(augmented_path)
+        self.original_prob = original_prob
 
 
     @staticmethod
@@ -44,7 +45,7 @@ class ToxicData(object):
                 logging.info('Loading augmented dataset from %s' % aug_path)
                 _, aug_dataset = self.load_supervised(np.load(aug_path))
                 aug_datasets.append(aug_dataset)
-            return ids, MultiNpDatasetAugmenter(original_dataset, *aug_datasets)
+            return ids, MultiNpDatasetAugmenter(original_dataset, *aug_datasets, use_original_prob=self.original_prob)
         return ids, original_dataset
 
     def load_train(self, mode="sup"):
@@ -68,7 +69,7 @@ class ToxicData(object):
 
 class MultiNpDatasetAugmenter(Dataset):
 
-    def __init__(self, original_dataset: NpDataset, *datasets: NpDataset):
+    def __init__(self, original_dataset: NpDataset, *datasets: NpDataset, use_original_prob=None):
         super().__init__()
         assert all(len(dataset) == len(original_dataset) for dataset in datasets), "Datasets must be of same length"
         assert all(dataset.output_labels == original_dataset.output_labels for dataset in
@@ -77,14 +78,22 @@ class MultiNpDatasetAugmenter(Dataset):
         self.original_dataset = original_dataset
         self.n_datasets = len(self.datasets)
         self.output_labels = original_dataset.output_labels
+        self.use_original_prob = use_original_prob
         self.__length = len(original_dataset)
+        self.__dataset_inds = np.arange(self.n_datasets, dtype=int)
+        if self.use_original_prob is None:
+            self.__sample_probs = None
+        else:
+            self.__sample_probs = np.array(
+                [self.use_original_prob] + [(1. - self.use_original_prob) / (self.n_datasets - 1.)] * (
+                 self.n_datasets - 1))
 
     def __len__(self):
         return self.__length
 
     def create_batch(self, batch_indicies):
-        # Randomly choose a dataset for each index
-        dataset_inds = np.random.randint(self.n_datasets, size=len(batch_indicies))
+        # Randomly choose a dataset for each index where the original has 50% chance of being used
+        dataset_inds = np.random.choice(self.__dataset_inds, size=len(batch_indicies), p=self.__sample_probs)
         x, y = None, None
         # Create each sub-batch for each sampled dataset
         for i, dataset in enumerate(self.datasets):

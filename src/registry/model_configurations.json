@@ -1,13 +1,13 @@
 {
   "rnn-emb": {
     "0-fasttext": {
-      "embeddings_name": "fasttext",
-      "rnn_layers": [{"input_size": 300, "output_size": 64, "rnn_type": "gru", "input_dropout": 0.0, "dropout": 0.3,
+      "embeddings_name": "fasttext_aug",
+      "rnn_layers": [{"input_size": 300, "output_size": 128, "rnn_type": "gru", "input_dropout": 0.0, "dropout": 0.3,
           "bidirectional": true, "n_layers": 2}],
       "pool": {"name": "global-maxpool"},
       "fc_layers": [
-        {"input_size": 64, "output_size": 32, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
-        {"input_size": 32, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+        {"input_size": 128, "output_size": 32, "activation": "relu", "batchnorm": true},
+        {"input_size": 32, "output_size": 6, "activation": "linear"}
       ]
     }
   }
