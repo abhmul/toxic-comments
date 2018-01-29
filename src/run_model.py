@@ -32,6 +32,7 @@ parser.add_argument('--load_model', action="store_true", help="Resumes training 
 parser.add_argument('--use_sgd', action="store_true", help="Uses SGD instead of Adam")
 parser.add_argument('--embed_lr', type=float, default=1e-3, help="Learning rate for embeddings if using trainable")
 parser.add_argument('--use_augmented', action='store_true', help="Uses additional augmented datasets")
+parser.add_argument('--kfold', type=int, default=10, help="Runs kfold validation with the input number")
 args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -44,14 +45,70 @@ EPOCHS = args.epochs
 
 TRAIN_ID = args.model + "_" + str(SEED)
 print("Training model with id:", TRAIN_ID)
-MODEL_FILE = "../models/" + TRAIN_ID + ".state"
-SUBMISSION_FILE = "../submissions/" + TRAIN_ID + ".csv"
-LOG_FILE = "../logs/" + TRAIN_ID + ".txt"
+
+
+def create_filenames(train_id):
+    model_file = "../models/" + train_id + ".state"
+    submission_file = "../submissions/" + train_id + ".csv"
+    log_file = "../logs/" + train_id + ".txt"
+    return model_file, submission_file, log_file
+
+
+def kfold(toxic_data):
+    ids, dataset = toxic_data.load_train(mode="sup")
+    logging.info("Total Data: %s samples" % len(dataset))
+
+    # Split the data
+    for i, (train_data, val_data) in enumerate(dataset.kfold(k=args.kfold, shuffle=True, seed=np.random.randint(2 ** 32))):
+        logging.info("Train Data: %s samples" % len(train_data))
+        logging.info("Val Data: %s samples" % len(val_data))
+        # And create the generators
+        traingen = DatasetGenerator(train_data, batch_size=args.batch_size, shuffle=True, seed=np.random.randint(2 ** 32))
+        valgen = DatasetGenerator(val_data, batch_size=args.batch_size, shuffle=True, seed=np.random.randint(2 ** 32))
+
+        model_file, submission_file, log_file = create_filenames(TRAIN_ID + "_fold%s" % i)
+
+        # callbacks
+        best_model = ModelCheckpoint(model_file, monitor="loss", verbose=1, save_best_only=True)
+        log_to_file = MetricLogger(log_file)
+        callbacks = [best_model, log_to_file]
+        # This will plot the losses while training
+        if args.plot:
+            loss_plot_fpath = '../plots/loss_' + TRAIN_ID + "_fold%s" % i + ".png"
+            loss_plotter = Plotter(monitor='loss', scale='log', save_to_file=loss_plot_fpath, block_on_end=False)
+            callbacks.append(loss_plotter)
+
+        # Initialize the model
+        model = load_model(args.model)
+        if args.load_model:
+            print("Loading the model to resume training")
+            model.load_state(model_file)
+        # And the optimizer
+
+        if args.use_sgd:
+            optimizer = optim.SGD(model.trainable_params(sgd=False), lr=0.01, momentum=0.9)
+            # callbacks.append(LRScheduler(optimizer, lambda epoch: 0.01 if epoch < 6 else 0.001))
+            callbacks.append(ReduceLROnPlateau(optimizer, monitor='loss', monitor_val=True, patience=1, verbose=1))
+        else:
+            optimizer = optim.Adam(model.trainable_params(sgd=False))
+        optimizers = [optimizer]
+        if model.trainable_params(sgd=True):
+            print("Creating SGD optimizer with 0.001 embed lr")
+            optimizers = [optimizer, optim.SGD(model.trainable_params(sgd=True), lr=args.embed_lr)]
+            # optimizers = [optimizer, optim.SparseAdam(model.trainable_params(sgd=True))]
+            # print(optimizers[1].param_groups[0]['params'][0])
+
+        # And finally train
+        tr_logs, val_logs = model.fit_generator(traingen, steps_per_epoch=traingen.steps_per_epoch,
+                                                epochs=EPOCHS, callbacks=callbacks, optimizer=optimizers,
+                                                loss_fn=binary_cross_entropy_with_logits, validation_generator=valgen,
+                                                validation_steps=valgen.steps_per_epoch)
 
 
 def train(toxic_data):
     ids, dataset = toxic_data.load_train(mode="sup")
     logging.info("Total Data: %s samples" % len(dataset))
+    model_file, submission_file, log_file = create_filenames(TRAIN_ID)
 
     # Split the data
     train_data, val_data = dataset.validation_split(split=args.split, shuffle=True, seed=np.random.randint(2**32))
@@ -62,8 +119,8 @@ def train(toxic_data):
     valgen = DatasetGenerator(val_data, batch_size=args.batch_size, shuffle=True, seed=np.random.randint(2**32))
 
     # callbacks
-    best_model = ModelCheckpoint(MODEL_FILE, monitor="loss", verbose=1, save_best_only=True)
-    log_to_file = MetricLogger(LOG_FILE)
+    best_model = ModelCheckpoint(model_file, monitor="loss", verbose=1, save_best_only=True)
+    log_to_file = MetricLogger(log_file)
     callbacks = [best_model, log_to_file]
     # This will plot the losses while training
     if args.plot:
@@ -75,7 +132,7 @@ def train(toxic_data):
     model = load_model(args.model)
     if args.load_model:
         print("Loading the model to resume training")
-        model.load_state(MODEL_FILE)
+        model.load_state(model_file)
     # And the optimizer
 
     if args.use_sgd:
@@ -108,16 +165,18 @@ def test(toxic_data):
     assert not test_data.output_labels
     logging.info("Test Data: %s samples" % len(test_data))
 
+    model_file, submission_file, log_file = create_filenames(TRAIN_ID)
+
     # And create the generators
     testgen = DatasetGenerator(test_data, batch_size=args.test_batch_size, shuffle=False)
 
     # Initialize the model
     model = load_model(args.model)
-    model.load_state(MODEL_FILE)
+    model.load_state(model_file)
 
     # Get the predictions
     predictions = model.predict_generator(testgen, testgen.steps_per_epoch, verbose=1)
-    ToxicData.save_submission(SUBMISSION_FILE, ids, predictions)
+    ToxicData.save_submission(submission_file, ids, predictions)
 
 
 if __name__ == "__main__":
@@ -135,6 +194,9 @@ if __name__ == "__main__":
     toxic = ToxicData(train_path, test_path, dictionary_path, augmented_path=augmented_path)
 
     if args.train:
-        train(toxic)
+        if args.kfold:
+            kfold(toxic)
+        else:
+            train(toxic)
     if args.test:
         test(toxic)

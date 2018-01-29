@@ -130,4 +130,16 @@ class MultiNpDatasetAugmenter(Dataset):
                              None if not self.output_labels else self.original_dataset.y[val_split])
         return train_data, val_data
 
+    def kfold(self, k=True, shuffle=False, seed=None):
+        for train_split_a, train_split_b, val_split in self.original_dataset.get_kfold_indices(k, shuffle, seed):
+            train_data = MultiNpDatasetAugmenter(
+                *(NpDataset(np.concatenate([dataset.x[train_split_a], dataset.x[train_split_b]]),
+                          None if not self.output_labels else np.concatenate(
+                              [dataset.y[train_split_a], dataset.y[train_split_b]])) for dataset in self.datasets)
+            )
+
+            val_data = NpDataset(self.original_dataset.x[val_split],
+                                 None if not self.output_labels else self.original_dataset.y[val_split])
+            yield train_data, val_data
+
 

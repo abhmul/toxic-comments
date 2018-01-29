@@ -1,0 +1,739 @@
+{
+  "rnn-emb": {
+    "shallow0-glove": {
+      "embeddings_name": "glove",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+        "bidirectional": true}],
+      "pool": {"name": "attention", "input_size": 300, "output_size": 1},
+      "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.5}]
+    },
+    "shallow1-glove": {
+      "embeddings_name": "glove",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "attention", "input_size": 300, "output_size": 1},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow2-glove": {
+      "embeddings_name": "glove",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow3-glove": {
+      "embeddings_name": "glove",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "k-maxpool", "k": 5},
+      "fc_layers": [
+        {"input_size": 1500, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow4-glove": {
+      "embeddings_name": "glove",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ],
+      "trainable": true
+    },
+    "shallow0-glove-nbsvm": {
+      "embeddings_name": "glove_nbsvm_kernel",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow0-glovegensim0": {
+      "embeddings_name": "glove_gensim0",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow0-glove42b": {
+      "embeddings_name": "glove42b",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow0-fasttext": {
+      "embeddings_name": "fasttext",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "attention", "input_size": 256, "output_size": 1},
+      "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.5}]
+    },
+    "shallow1-fasttext": {
+      "embeddings_name": "fasttext",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "attention", "input_size": 256, "output_size": 1},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow2-fasttext": {
+      "embeddings_name": "fasttext",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "lstm", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow3-fasttext": {
+      "embeddings_name": "fasttext",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow2-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "lstm", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow3-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow4-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ],
+      "trainable": true
+    },
+    "shallow5-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.0, "dropout": 0.2,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow6-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.0, "dropout": 0.2,
+          "bidirectional": true}],
+      "pool": {"name": "context-attention", "input_size": 300, "output_size": 1, "batchnorm": false},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow4-fasttext": {
+      "embeddings_name": "fasttext",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true, "residual": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow5-fasttext": {
+      "embeddings_name": "fasttext",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.0, "dropout": 0.2,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow0-combined": {
+      "embeddings_name": "combined",
+      "rnn_layers": [{"input_size": 900, "output_size": 900, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 900, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow1-combined": {
+      "embeddings_name": "combined",
+      "rnn_layers": [{"input_size": 900, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow2-combined": {
+      "embeddings_name": "combined",
+      "rnn_layers": [{"input_size": 900, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.5, "dropout": 0.2,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow0-combined-nbsvm": {
+      "embeddings_name": "combined_nbsvm_kernel",
+      "rnn_layers": [{"input_size": 900, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.5, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow1-combined-nbsvm": {
+      "embeddings_name": "combined_nbsvm_kernel",
+      "rnn_layers": [{"input_size": 900, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.5, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "context-attention", "input_size": 300, "output_size": 1, "batchnorm": false},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow2-combined-nbsvm": {
+      "embeddings_name": "combined_nbsvm_kernel",
+      "rnn_layers": [{"input_size": 900, "output_size": 300, "rnn_type": "lstm", "input_dropout": 0.5, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow3-combined-nbsvm": {
+      "embeddings_name": "combined_nbsvm_kernel",
+      "rnn_layers": [{"input_size": 900, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.5, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ],
+      "trainable": true
+    },
+    "shallow0-combined-aug-nbsvm": {
+      "embeddings_name": "combined_aug_nbsvm_kernel",
+      "rnn_layers": [{"input_size": 900, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.5, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow1-combined-aug-nbsvm": {
+      "embeddings_name": "combined_aug_nbsvm_kernel",
+      "rnn_layers": [{"input_size": 900, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.5, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ],
+      "trainable": true
+    },
+    "shallow3-fasttext-noprocess": {
+      "embeddings_name": "fasttext_no_process",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+
+    "test-fasttext": {
+      "embeddings_name": "fasttext",
+      "rnn_layers": [{"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25, "dropout": 0.25,
+          "bidirectional": true}],
+      "pool": {"name": "attention", "input_size": 256, "output_size": 1},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    }
+  },
+
+
+  "han": {
+    "shallow0-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel_sent",
+      "word_layers": [{"name": "rnn", "input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "word_pool": {"name": "global-maxpool"},
+      "sent_layers": [{"name": "rnn", "input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "sent_pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 300, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow1-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel_sent",
+      "word_layers": [{"name": "rnn", "input_size": 300, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "word_pool": {"name": "global-maxpool"},
+      "sent_layers": [{"name": "rnn", "input_size": 100, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "sent_pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 100, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow2-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel_sent",
+      "word_layers": [{"name": "rnn", "input_size": 300, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "word_pool": {"name": "attention", "input_size": 100, "output_size": 1},
+      "sent_layers": [{"name": "rnn", "input_size": 100, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "sent_pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 100, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow3-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel_sent",
+      "word_layers": [{"name": "rnn", "input_size": 300, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "word_pool": {"name": "attention", "input_size": 100, "output_size": 1},
+      "sent_layers": [{"name": "rnn", "input_size": 100, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "sent_pool": {"name": "attention", "input_size": 100, "output_size": 1},
+      "fc_layers": [
+        {"input_size": 100, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow4-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel_sent",
+      "word_layers": [{"name": "rnn", "input_size": 300, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "word_pool": {"name": "context-attention", "input_size": 100, "output_size": 1, "batchnorm": false},
+      "sent_layers": [{"name": "rnn", "input_size": 100, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "sent_pool": {"name": "context-attention", "input_size": 100, "output_size": 1, "batchnorm": false},
+      "fc_layers": [
+        {"input_size": 100, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow5-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel_sent",
+      "word_layers": [{"name": "rnn", "input_size": 300, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "word_pool": {"name": "context-attention", "input_size": 100, "output_size": 1, "batchnorm": true},
+      "sent_layers": [{"name": "rnn", "input_size": 100, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "sent_pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 100, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow6-fasttext-nbsvm": {
+      "embeddings_name": "fasttext_nbsvm_kernel_sent",
+      "word_layers": [{"name": "rnn", "input_size": 300, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "word_pool": {"name": "context-attention", "input_size": 100, "output_size": 1, "batchnorm": false},
+      "sent_layers": [{"name": "rnn", "input_size": 100, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "sent_pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 100, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow0-combined-nbsvm": {
+      "embeddings_name": "combined_nbsvm_kernel_sent",
+      "word_layers": [{"name": "rnn", "input_size": 900, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.5,
+        "dropout": 0.25, "bidirectional": true}],
+      "word_pool": {"name": "global-maxpool"},
+      "sent_layers": [{"name": "rnn", "input_size": 100, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "sent_pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 100, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+    "shallow1-combined-nbsvm": {
+      "embeddings_name": "combined_nbsvm_kernel_sent",
+      "word_layers": [{"name": "rnn", "input_size": 900, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.5,
+        "dropout": 0.25, "bidirectional": true}],
+      "word_pool": {"name": "context-attention", "input_size": 100, "output_size": 1, "batchnorm": false},
+      "sent_layers": [{"name": "rnn", "input_size": 100, "output_size": 100, "rnn_type": "gru", "input_dropout": 0.25,
+        "dropout": 0.25, "bidirectional": true}],
+      "sent_pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 100, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    }
+  },
+
+
+  "cnn-emb": {
+    "shallow0-glove": {
+      "embeddings_name": "glove",
+      "conv_layers": [
+        {"input_size": 300, "output_size": 512, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "input_dropout": 0.2, "dropout": 0.2},
+        {"input_size": 512, "output_size": 256, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.2}
+      ],
+      "pool": {"name": "k-maxpool", "k": 5},
+      "fc_layers": [{"input_size": 1280, "output_size": 6, "activation": "linear", "input_dropout": 0.5}]
+    },
+    "shallow0-fasttext": {
+      "embeddings_name": "fasttext",
+      "conv_layers": [
+        {"input_size": 300, "output_size": 512, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "input_dropout": 0.2, "dropout": 0.2},
+        {"input_size": 512, "output_size": 256, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.2}
+      ],
+      "pool": {"name": "k-maxpool", "k": 5},
+      "fc_layers": [{"input_size": 1280, "output_size": 6, "activation": "linear", "input_dropout": 0.5}]
+    },
+    "shallow1-glove": {
+      "embeddings_name": "glove",
+      "conv_layers": [
+        {"input_size": 300, "output_size": 512, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "input_dropout": 0.2, "dropout": 0.2},
+        {"input_size": 512, "output_size": 256, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.2}
+      ],
+      "pool": {"name": "attention", "input_size": 256, "output_size": 1},
+      "fc_layers": [{"input_size": 1280, "output_size": 6, "activation": "linear", "input_dropout": 0.5}]
+    },
+    "deep0-glove": {
+      "embeddings_name": "glove",
+      "conv_layers": [
+        {"input_size": 300, "output_size": 512, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "input_dropout": 0.2, "dropout": 0.2},
+        {"input_size": 512, "output_size": 256, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.2},
+        {"input_size": 256, "output_size": 128, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.2},
+        {"input_size": 128, "output_size": 64, "kernel_size": 3, "activation": "relu", "pool_type": "max",
+          "pool_kernel_size": 2, "pool_stride": 1, "batchnorm": true, "dropout": 0.2}
+      ],
+      "pool": {"name": "k-maxpool", "k": 5},
+      "fc_layers": [
+        {"input_size": 320, "output_size": 256, "activation": "relu", "batchnorm": true, "input_dropout": 0.5},
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    }
+  },
+
+  "dpcnn": {
+    "0-fasttext": {
+      "embeddings_name": "fasttext_nbsvm_kernel",
+      "conv_layers": [
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true}
+      ],
+      "pool": {"name": "maxpool", "kernel_size": 3, "stride": 2, "padding": "same"},
+      "global_pool": {"name": "global-maxpool"},
+      "block_size": 2,
+      "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.5}],
+      "numpy_embeddings": false,
+      "trainable": true
+    },
+    "1-fasttext": {
+      "embeddings_name": "fasttext_nbsvm_kernel",
+      "conv_layers": [
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true}
+      ],
+      "pool": {"name": "maxpool", "kernel_size": 3, "stride": 2, "padding": "same"},
+      "global_pool": {"name": "global-maxpool"},
+      "block_size": 2,
+      "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.5}],
+      "numpy_embeddings": false,
+      "trainable": true
+    },
+    "0-glove": {
+      "embeddings_name": "glove_nbsvm_kernel",
+      "conv_layers": [
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true}
+      ],
+      "pool": {"name": "maxpool", "kernel_size": 3, "stride": 2, "padding": "same"},
+      "global_pool": {"name": "global-maxpool"},
+      "block_size": 2,
+      "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.5}],
+      "numpy_embeddings": false,
+      "trainable": true
+    },
+    "0-combined": {
+      "embeddings_name": "combined_nbsvm_kernel",
+      "conv_layers": [
+        {"input_size": 900, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true}
+      ],
+      "pool": {"name": "maxpool", "kernel_size": 3, "stride": 2, "padding": "same"},
+      "global_pool": {"name": "global-maxpool"},
+      "block_size": 2,
+      "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.5}],
+      "numpy_embeddings": false
+    },
+    "1-combined": {
+      "embeddings_name": "combined_nbsvm_kernel",
+      "conv_layers": [
+        {"input_size": 900, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.5},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true}
+      ],
+      "pool": {"name": "maxpool", "kernel_size": 3, "stride": 2, "padding": "same"},
+      "global_pool": {"name": "global-maxpool"},
+      "block_size": 2,
+      "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.5}],
+      "numpy_embeddings": false,
+      "trainable": true
+    },
+    "2-combined": {
+      "embeddings_name": "combined_nbsvm_kernel",
+      "conv_layers": [
+        {"input_size": 900, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.5},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true}
+      ],
+      "pool": {"name": "maxpool", "kernel_size": 3, "stride": 2, "padding": "same"},
+      "global_pool": {"name": "global-maxpool"},
+      "block_size": 2,
+      "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.5}],
+      "numpy_embeddings": false,
+      "trainable": true
+    },
+    "3-combined": {
+      "embeddings_name": "combined_nbsvm_kernel",
+      "conv_layers": [
+        {"input_size": 900, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.5},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.2},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true}
+      ],
+      "pool": {"name": "maxpool", "kernel_size": 3, "stride": 2, "padding": "same"},
+      "global_pool": {"name": "global-maxpool"},
+      "block_size": 2,
+      "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.5}],
+      "numpy_embeddings": false,
+      "trainable": false
+    },
+    "0-combined-aug": {
+      "embeddings_name": "combined_aug_nbsvm_kernel",
+      "conv_layers": [
+        {"input_size": 900, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true}
+      ],
+      "pool": {"name": "maxpool", "kernel_size": 3, "stride": 2, "padding": "same"},
+      "global_pool": {"name": "global-maxpool"},
+      "block_size": 2,
+      "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.5}],
+      "numpy_embeddings": false
+    },
+    "1-combined-aug": {
+      "embeddings_name": "combined_aug_nbsvm_kernel",
+      "conv_layers": [
+        {"input_size": 900, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true},
+
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true,
+          "input_dropout": 0.1},
+        {"input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu", "batchnorm": true}
+      ],
+      "pool": {"name": "maxpool", "kernel_size": 3, "stride": 2, "padding": "same"},
+      "global_pool": {"name": "global-maxpool"},
+      "block_size": 2,
+      "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.5}],
+      "numpy_embeddings": false,
+      "trainable": true
+    }
+  },
+
+  "dprnn": {
+    "0-fasttext": {
+      "embeddings_name": "fasttext",
+      "rnn_layers": [
+        {"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25,
+        "bidirectional": true},
+
+        {"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25,
+        "bidirectional": true},
+
+        {"input_size": 300, "output_size": 300, "rnn_type": "gru", "input_dropout": 0.25,
+        "bidirectional": true}
+      ],
+      "pool": {"name": "maxpool", "kernel_size": 3, "stride": 2, "padding": "same"},
+      "global_pool": {"name": "global-maxpool"},
+      "block_size": 1,
+      "fc_layers": [{"input_size": 300, "output_size": 6, "activation": "linear", "input_dropout": 0.5}],
+      "numpy_embeddings": true
+    }
+  }
+}
