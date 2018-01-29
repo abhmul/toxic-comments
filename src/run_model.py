@@ -35,6 +35,7 @@ parser.add_argument('--use_augmented', action='store_true', help="Uses additiona
 parser.add_argument('--original_prob', type=float, default=0.5, help="Probability of not using an augmented sample")
 parser.add_argument('--kfold', type=int, default=10, help="Runs kfold validation with the input number")
 parser.add_argument('--use_rmsprop', action="store_true", help="Uses RMSProp instead of Adam")
+parser.add_argument('--postprocessing', default="pavel", help="Type of postprocessing to use")
 args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -47,6 +48,14 @@ EPOCHS = args.epochs
 
 TRAIN_ID = args.model + "_" + str(SEED)
 print("Training model with id:", TRAIN_ID)
+
+
+# Postprocessing
+def none(preds):
+    return preds
+def pavel(preds):
+    return np.power(preds, 1.4)
+postprocessing = {pavel.__name__: pavel, none.__name__: none}
 
 
 def create_filenames(train_id):
@@ -170,17 +179,35 @@ def test(toxic_data):
     assert not test_data.output_labels
     logging.info("Test Data: %s samples" % len(test_data))
 
-    model_file, submission_file, log_file = create_filenames(TRAIN_ID)
-
     # And create the generators
     testgen = DatasetGenerator(test_data, batch_size=args.test_batch_size, shuffle=False)
 
-    # Initialize the model
-    model = load_model(args.model)
-    model.load_state(model_file)
+    # Kfold prediction
+    if args.kfold:
+        predictions = 0.
+        for i in range(args.kfold):
+            logging.info("Predicting fold %s" % i)
+            model_file, submission_file, log_file = create_filenames(TRAIN_ID + "_fold%s" % i)
+            # Initialize the model
+            model = load_model(args.model)
+            model.load_state(model_file)
 
-    # Get the predictions
-    predictions = model.predict_generator(testgen, testgen.steps_per_epoch, verbose=1)
+            # Get the predictions
+            predictions = predictions + model.predict_generator(testgen, testgen.steps_per_epoch, verbose=1)
+        predictions = predictions / args.kfold
+    else:
+        model_file, submission_file, log_file = create_filenames(TRAIN_ID)
+        # Initialize the model
+        model = load_model(args.model)
+        model.load_state(model_file)
+
+        # Get the predictions
+        predictions = model.predict_generator(testgen, testgen.steps_per_epoch, verbose=1)
+
+    model_file, submission_file, log_file = create_filenames(TRAIN_ID)
+    # Run the postprocessing
+    logging.info("Running postprocessing: %s" % args.postprocessing)
+    predictions = postprocessing[args.postprocessing](predictions)
     ToxicData.save_submission(submission_file, ids, predictions)
 
 
