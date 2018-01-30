@@ -70,7 +70,7 @@ def kfold(toxic_data):
     logging.info("Total Data: %s samples" % len(dataset))
     logging.info("Running %sfold validation" % args.kfold)
     # Split the data
-    # completed = {0, 1, 2, 3, 4, 5, 6, 7, 8}
+    completed = {}
     for i, (train_data, val_data) in enumerate(dataset.kfold(k=args.kfold, shuffle=True, seed=np.random.randint(2 ** 32))):
         if i in completed:
             continue
