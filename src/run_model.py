@@ -70,7 +70,11 @@ def kfold(toxic_data):
     logging.info("Total Data: %s samples" % len(dataset))
     logging.info("Running %sfold validation" % args.kfold)
     # Split the data
+    # completed = {0, 1, 2, 3, 4, 5, 6, 7, 8}
     for i, (train_data, val_data) in enumerate(dataset.kfold(k=args.kfold, shuffle=True, seed=np.random.randint(2 ** 32))):
+        if i in completed:
+            continue
+        logging.info("Training Fold%s" % i)
         logging.info("Train Data: %s samples" % len(train_data))
         logging.info("Val Data: %s samples" % len(val_data))
         # And create the generators
@@ -117,6 +121,13 @@ def kfold(toxic_data):
                                                 epochs=EPOCHS, callbacks=callbacks, optimizer=optimizers,
                                                 loss_fn=binary_cross_entropy_with_logits, validation_generator=valgen,
                                                 validation_steps=valgen.steps_per_epoch)
+        # Clear the memory associated with models and optimizers
+        del model
+        del optimizer
+        del optimizers
+        del callbacks
+        if J.use_cuda:
+            torch.cuda.empty_cache()
 
 
 def train(toxic_data):
@@ -171,6 +182,14 @@ def train(toxic_data):
                                             validation_steps=valgen.steps_per_epoch)
     if len(optimizers) > 1:
         print(optimizers[1].param_groups[0]['params'][0])
+
+    # Clear the memory associated with models and optimizers
+    del model
+    del optimizer
+    del optimizers
+    del callbacks
+    if J.use_cuda:
+        torch.cuda.empty_cache()
 
 
 def test(toxic_data):

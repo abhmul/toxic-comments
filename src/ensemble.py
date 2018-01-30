@@ -33,6 +33,7 @@ def ensemble_submissions(submission_fnames, weights=None):
     # Normalize the weights
     weight_sum = sum(weights)
     weights = [w / weight_sum for w in weights]
+    logging.info("Using weights {}".format(weights))
     # Get the id column of the submissions
     ids = pd.read_csv(submission_fnames[0])['id'].values
     # Read in all the submission values

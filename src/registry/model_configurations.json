@@ -10,7 +10,6 @@
         {"input_size": 32, "output_size": 6, "activation": "linear"}
       ]
     },
-    "rnn-emb": {
     "0-combined": {
       "embeddings_name": "combined_aug",
       "rnn_layers": [{"input_size": 900, "output_size": 128, "rnn_type": "gru", "input_dropout": 0.0, "dropout": 0.3,
