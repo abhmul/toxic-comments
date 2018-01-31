@@ -15,7 +15,7 @@ from registry import registry
 
 class DenseRNNEmb(AEmbeddingModel):
 
-    def __init__(self, embeddings_name, rnn_layers, fc_layers, pool, resample=True,
+    def __init__(self, embeddings_name, rnn_layers, fc_layers, pool, resample=False,
                  trainable=False, vocab_size=None, num_features=None, numpy_embeddings=False):
         super(DenseRNNEmb, self).__init__(embeddings_name, trainable=trainable, vocab_size=vocab_size,
                                           num_features=num_features, numpy_embeddings=numpy_embeddings)

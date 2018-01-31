@@ -8,6 +8,8 @@ import argparse
 from torch.nn.functional import binary_cross_entropy_with_logits
 import torch.optim as optim
 
+from sklearn.metrics import roc_auc_score as sk_roc_auc_score
+
 from pyjet.callbacks import ModelCheckpoint, Plotter, MetricLogger, LRScheduler, ReduceLROnPlateau
 from pyjet.data import DatasetGenerator
 import pyjet.backend as J
@@ -58,6 +60,13 @@ def pavel(preds):
 postprocessing = {pavel.__name__: pavel, none.__name__: none}
 
 
+def roc_auc_score(preds, targets):
+    if preds.ndim == 1:
+        preds = preds[:, np.newaxis]
+        targets = targets[:, np.newaxis]
+    return sum(sk_roc_auc_score(targets[:, i], preds[:, i]) for i in range(preds.shape[1])) / preds.shape[1]
+
+
 def create_filenames(train_id):
     model_file = "../models/" + train_id + ".state"
     submission_file = "../submissions/" + train_id + ".csv"
@@ -84,7 +93,7 @@ def kfold(toxic_data):
         model_file, submission_file, log_file = create_filenames(TRAIN_ID + "_fold%s" % i)
 
         # callbacks
-        best_model = ModelCheckpoint(model_file, monitor="loss", verbose=1, save_best_only=True)
+        best_model = ModelCheckpoint(model_file, monitor="roc_auc_score", verbose=1, save_best_only=True)
         log_to_file = MetricLogger(log_file)
         callbacks = [best_model, log_to_file]
         # This will plot the losses while training
@@ -178,8 +187,8 @@ def train(toxic_data):
     # And finally train
     tr_logs, val_logs = model.fit_generator(traingen, steps_per_epoch=traingen.steps_per_epoch,
                                             epochs=EPOCHS, callbacks=callbacks, optimizer=optimizers,
-                                            loss_fn=binary_cross_entropy_with_logits, validation_generator=valgen,
-                                            validation_steps=valgen.steps_per_epoch)
+                                            loss_fn=binary_cross_entropy_with_logits, np_metrics=[roc_auc_score],
+                                            validation_generator=valgen, validation_steps=valgen.steps_per_epoch)
     if len(optimizers) > 1:
         print(optimizers[1].param_groups[0]['params'][0])
 

@@ -7,13 +7,14 @@ import pyjet.backend as J
 from models.abstract_model import AEmbeddingModel
 import layers.functions as L
 from layers import RNN, FullyConnected, build_layer
+from pyjet.layers import Conv1D
 
 from registry import registry
 
 
 class RNNEmb(AEmbeddingModel):
 
-    def __init__(self, embeddings_name, rnn_layers, fc_layers, pool,
+    def __init__(self, embeddings_name, rnn_layers, fc_layers, pool, resample=False,
                  trainable=False, vocab_size=None, num_features=None, numpy_embeddings=False):
         super(RNNEmb, self).__init__(embeddings_name, trainable=trainable, vocab_size=vocab_size,
                                      num_features=num_features, numpy_embeddings=numpy_embeddings)
@@ -22,6 +23,10 @@ class RNNEmb(AEmbeddingModel):
         self.rnn_layers = nn.ModuleList([RNN(**rnn_layer) for rnn_layer in rnn_layers])
         self.pool = build_layer(**pool)
         self.fc_layers = nn.ModuleList([FullyConnected(**fc_layer) for fc_layer in fc_layers])
+
+        self.resample = resample and self.num_features != self.rnn_layers[0].input_size
+        if self.resample:
+            self.resampler = Conv1D(self.num_features, self.rnn_layers[0].input_size, 1, use_bias=False)
 
         # For testing purposes only
         # self.att = AttentionHierarchy(self.num_features, 300, encoder_dropout=0.25, att_type='linear')
@@ -39,6 +44,9 @@ class RNNEmb(AEmbeddingModel):
         return Variable(J.from_numpy(y).float(), volatile=volatile)
 
     def forward(self, x):
+        # Apply the resampler if necessary
+        if self.resample:
+            x = self.resampler(x)
         for rnn_layer in self.rnn_layers:
             x = rnn_layer(x)  # B x Li x H
         x = self.pool(x)
