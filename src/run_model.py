@@ -37,7 +37,7 @@ parser.add_argument('--use_augmented', action='store_true', help="Uses additiona
 parser.add_argument('--original_prob', type=float, default=0.5, help="Probability of not using an augmented sample")
 parser.add_argument('--kfold', type=int, default=10, help="Runs kfold validation with the input number")
 parser.add_argument('--use_rmsprop', action="store_true", help="Uses RMSProp instead of Adam")
-parser.add_argument('--postprocessing', default="pavel", help="Type of postprocessing to use")
+parser.add_argument('--postprocessing', default="none", help="Type of postprocessing to use")
 args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -55,8 +55,12 @@ print("Training model with id:", TRAIN_ID)
 # Postprocessing
 def none(preds):
     return preds
+
+
 def pavel(preds):
     return np.power(preds, 1.4)
+
+
 postprocessing = {pavel.__name__: pavel, none.__name__: none}
 
 
