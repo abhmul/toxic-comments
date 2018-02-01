@@ -16,6 +16,7 @@ import pyjet.backend as J
 
 from toxic_dataset import ToxicData
 from models import load_model
+from roc_auc_loss import ROC_AUC_loss
 
 import logging
 
@@ -38,6 +39,7 @@ parser.add_argument('--original_prob', type=float, default=0.5, help="Probabilit
 parser.add_argument('--kfold', type=int, default=10, help="Runs kfold validation with the input number")
 parser.add_argument('--use_rmsprop', action="store_true", help="Uses RMSProp instead of Adam")
 parser.add_argument('--postprocessing', default="none", help="Type of postprocessing to use")
+parser.add_argument('--use_auc_loss', action="store_true", help="Uses auc loss instead of logloss")
 args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -133,10 +135,12 @@ def kfold(toxic_data):
             # optimizers = [optimizer, optim.SparseAdam(model.trainable_params(sgd=True))]
             # print(optimizers[1].param_groups[0]['params'][0])
 
+        loss = ROC_AUC_loss() if args.use_auc_loss else binary_cross_entropy_with_logits
+
         # And finally train
         tr_logs, val_logs = model.fit_generator(traingen, steps_per_epoch=traingen.steps_per_epoch,
                                                 epochs=EPOCHS, callbacks=callbacks, optimizer=optimizers,
-                                                loss_fn=binary_cross_entropy_with_logits, validation_generator=valgen,
+                                                loss_fn=loss, validation_generator=valgen,
                                                 validation_steps=valgen.steps_per_epoch, np_metrics=[roc_auc_score])
         # Clear the memory associated with models and optimizers
         del optimizer
@@ -192,11 +196,12 @@ def train(toxic_data):
         print(optimizers[1].param_groups[0]['params'][0])
     # print(model.embeddings)
 
+    loss = ROC_AUC_loss() if args.use_auc_loss else binary_cross_entropy_with_logits
 
     # And finally train
     tr_logs, val_logs = model.fit_generator(traingen, steps_per_epoch=traingen.steps_per_epoch,
                                             epochs=EPOCHS, callbacks=callbacks, optimizer=optimizers,
-                                            loss_fn=binary_cross_entropy_with_logits, np_metrics=[roc_auc_score],
+                                            loss_fn=loss, np_metrics=[roc_auc_score],
                                             validation_generator=valgen, validation_steps=valgen.steps_per_epoch)
     if len(optimizers) > 1:
         print(optimizers[1].param_groups[0]['params'][0])
