@@ -22,6 +22,6 @@ class ROC_AUC_loss(nn.Module):
         false_outputs = outputs.masked_select(false_mask)
         assert true_outputs.ndim == 1
         assert false_outputs.ndim == 1
-        return self.heaveside_func(
+        return -self.heaveside_func(
             true_outputs.view(1, true_outputs.size(0)) - false_outputs.view(false_outputs.size(0), 1)).mean()
 
