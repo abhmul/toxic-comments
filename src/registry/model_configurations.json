@@ -20,5 +20,20 @@
         {"input_size": 32, "output_size": 6, "activation": "linear"}
       ]
     }
+  },
+  "han": {
+    "0-fasttext": {
+      "embeddings_name": "fasttext_sent_aug",
+      "word_layers": [{"name": "rnn", "input_size": 300, "output_size": 128, "rnn_type": "gru", "input_dropout": 0.0,
+        "dropout": 0.3, "bidirectional": true}],
+      "word_pool": {"name": "global-maxpool"},
+      "sent_layers": [{"name": "rnn", "input_size": 128, "output_size": 128, "rnn_type": "gru", "input_dropout": 0.0,
+        "dropout": 0.3, "bidirectional": true}],
+      "sent_pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 128, "output_size": 32, "activation": "relu", "batchnorm": true},
+        {"input_size": 32, "output_size": 6, "activation": "linear"}
+      ]
+    }
   }
 }

@@ -99,6 +99,7 @@ class HAN(AEmbeddingModel):
         # Need to turn it into a list of packed sequences
         # We make packs for each document
         # Remove any missing words
+        x = [sample if len(sample) else [np.array([])] for sample in x]
         x = [[np.array([word for word in sent if word not in self.missing]) for sent in sample] for sample in x]
         x = [[L.pad_numpy_to_length(sent, length=self.min_len) for sent in sample] for sample in x]
         x = [(sample if len(sample) > 0 else [self.default_sentence]) for sample in x]

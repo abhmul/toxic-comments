@@ -18,5 +18,9 @@
     "files": ["rnn-emb_0-fasttext_7", "rnn-emb_0-combined_7"],
     "weights": [0.4, 0.6],
     "score": 0.052
+  },
+  "han-rnn-fasttext-combined-0": {
+    "files": ["rnn-emb_0-fasttext_7", "rnn-emb_0-combined_7", "han_0-fasttext_7"],
+    "weights": [0.25, 0.5, 0.25]
   }
 }

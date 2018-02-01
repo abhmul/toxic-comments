@@ -89,15 +89,14 @@ def reformat_texts(flat_texts, text_lens):
     assert len(flat_texts) == sum(text_lens)
     texts = []
     cur_text = []
-    cur_len_ind = 0
-    for sent in flat_texts:
-        cur_text.append(sent)
-        # If we have added the correct number of sentences
-        if len(cur_text) == text_lens[cur_len_ind]:
-            texts.append(cur_text)
-            cur_text = []
-            cur_len_ind += 1
-    assert cur_text == []
+    sent_num = 0
+    for text_len in tqdm(text_lens):
+        while len(cur_text) != text_len:
+            cur_text.append(flat_texts[sent_num])
+            sent_num += 1
+        texts.append(cur_text)
+        cur_text = []
+    assert cur_text == [], "Cur text is {} and sent_num is {}/{}".format(cur_text, sent_num, len(flat_texts))
     return texts
 
 
