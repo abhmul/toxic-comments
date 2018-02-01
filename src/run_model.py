@@ -1,24 +1,19 @@
-import torch
-
-
-import os
-import numpy as np
 import argparse
-
-from torch.nn.functional import binary_cross_entropy_with_logits
-import torch.optim as optim
-
-from sklearn.metrics import roc_auc_score as sk_roc_auc_score
-
-from pyjet.callbacks import ModelCheckpoint, Plotter, MetricLogger, LRScheduler, ReduceLROnPlateau
-from pyjet.data import DatasetGenerator
-import pyjet.backend as J
-
-from toxic_dataset import ToxicData
-from models import load_model
-from roc_auc_loss import ROC_AUC_loss
-
 import logging
+import os
+
+import numpy as np
+import torch
+import torch.optim as optim
+from sklearn.metrics import roc_auc_score as sk_roc_auc_score
+from torch.nn.functional import binary_cross_entropy_with_logits
+
+import pyjet.backend as J
+from models import load_model
+from pyjet.callbacks import ModelCheckpoint, Plotter, MetricLogger, ReduceLROnPlateau
+from pyjet.data import DatasetGenerator
+from roc_auc_loss import ROC_AUC_loss
+from toxic_dataset import ToxicData
 
 parser = argparse.ArgumentParser(description='Run the models.')
 parser.add_argument('-m', '--model', required=True, help='The model name to train')
@@ -40,6 +35,7 @@ parser.add_argument('--kfold', type=int, default=10, help="Runs kfold validation
 parser.add_argument('--use_rmsprop', action="store_true", help="Uses RMSProp instead of Adam")
 parser.add_argument('--postprocessing', default="none", help="Type of postprocessing to use")
 parser.add_argument('--use_auc_loss', action="store_true", help="Uses auc loss instead of logloss")
+parser.add_argument('--num_completed', type=int, default=0, help="How many completed folds")
 args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -87,7 +83,7 @@ def kfold(toxic_data):
     # Initialize the model
     model = load_model(args.model)
 
-    completed = {}
+    completed = set(range(args.num_completed))
     for i, (train_data, val_data) in enumerate(dataset.kfold(k=args.kfold, shuffle=True, seed=np.random.randint(2 ** 32))):
         if i in completed:
             continue
