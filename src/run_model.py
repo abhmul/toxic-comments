@@ -78,7 +78,9 @@ def kfold(toxic_data):
     ids, dataset = toxic_data.load_train(mode="sup")
     logging.info("Total Data: %s samples" % len(dataset))
     logging.info("Running %sfold validation" % args.kfold)
-    # Split the data
+    # Initialize the model
+    model = load_model(args.model)
+
     completed = {}
     for i, (train_data, val_data) in enumerate(dataset.kfold(k=args.kfold, shuffle=True, seed=np.random.randint(2 ** 32))):
         if i in completed:
@@ -102,13 +104,15 @@ def kfold(toxic_data):
             loss_plotter = Plotter(monitor='loss', scale='log', save_to_file=loss_plot_fpath, block_on_end=False)
             callbacks.append(loss_plotter)
 
-        # Initialize the model
-        model = load_model(args.model)
+        # Setup the weights
         if args.load_model:
-            print("Loading the model to resume training")
+            logging.info("Loading the model from %s to resume training" % model_file)
             model.load_state(model_file)
-        # And the optimizer
+        else:
+            logging.info("Resetting model parameters")
+            model.reset_parameters()
 
+        # And the optimizer
         if args.use_sgd:
             optimizer = optim.SGD(model.trainable_params(sgd=False), lr=0.01, momentum=0.9)
             # callbacks.append(LRScheduler(optimizer, lambda epoch: 0.01 if epoch < 6 else 0.001))
@@ -129,14 +133,15 @@ def kfold(toxic_data):
         tr_logs, val_logs = model.fit_generator(traingen, steps_per_epoch=traingen.steps_per_epoch,
                                                 epochs=EPOCHS, callbacks=callbacks, optimizer=optimizers,
                                                 loss_fn=binary_cross_entropy_with_logits, validation_generator=valgen,
-                                                validation_steps=valgen.steps_per_epoch)
+                                                validation_steps=valgen.steps_per_epoch, np_metrics=[roc_auc_score])
         # Clear the memory associated with models and optimizers
-        del model
         del optimizer
         del optimizers
         del callbacks
         if J.use_cuda:
             torch.cuda.empty_cache()
+
+    return model
 
 
 def train(toxic_data):
@@ -153,7 +158,7 @@ def train(toxic_data):
     valgen = DatasetGenerator(val_data, batch_size=args.batch_size, shuffle=True, seed=np.random.randint(2**32))
 
     # callbacks
-    best_model = ModelCheckpoint(model_file, monitor="loss", verbose=1, save_best_only=True)
+    best_model = ModelCheckpoint(model_file, monitor="roc_auc_score", verbose=1, save_best_only=True)
     log_to_file = MetricLogger(log_file)
     callbacks = [best_model, log_to_file]
     # This will plot the losses while training
@@ -193,15 +198,16 @@ def train(toxic_data):
         print(optimizers[1].param_groups[0]['params'][0])
 
     # Clear the memory associated with models and optimizers
-    del model
     del optimizer
     del optimizers
     del callbacks
     if J.use_cuda:
         torch.cuda.empty_cache()
 
+    return model
 
-def test(toxic_data):
+
+def test(toxic_data, model=None):
     # Create the paths for the data
     ids, test_data = toxic_data.load_test()
     assert not test_data.output_labels
@@ -209,7 +215,9 @@ def test(toxic_data):
 
     # And create the generators
     testgen = DatasetGenerator(test_data, batch_size=args.test_batch_size, shuffle=False)
-
+    # And create the model
+    if model is None:
+        model = load_model(args.model)
     # Kfold prediction
     if args.kfold:
         predictions = 0.
@@ -217,7 +225,6 @@ def test(toxic_data):
             logging.info("Predicting fold %s" % i)
             model_file, submission_file, log_file = create_filenames(TRAIN_ID + "_fold%s" % i)
             # Initialize the model
-            model = load_model(args.model)
             model.load_state(model_file)
 
             # Get the predictions
@@ -226,7 +233,6 @@ def test(toxic_data):
     else:
         model_file, submission_file, log_file = create_filenames(TRAIN_ID)
         # Initialize the model
-        model = load_model(args.model)
         model.load_state(model_file)
 
         # Get the predictions
@@ -254,10 +260,11 @@ if __name__ == "__main__":
     toxic = ToxicData(train_path, test_path, dictionary_path, augmented_path=augmented_path,
                       original_prob=args.original_prob)
 
+    model = None
     if args.train:
         if args.kfold:
-            kfold(toxic)
+            model = kfold(toxic)
         else:
-            train(toxic)
+            model = train(toxic)
     if args.test:
-        test(toxic)
+        test(toxic, model=model)

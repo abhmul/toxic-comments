@@ -33,6 +33,7 @@ pyjet_layer_types = {
     "maxpool": JLayers.MaxPooling1D,
     "avgpool": JLayers.AveragePooling1D,
     "global-maxpool": JLayers.GlobalMaxPooling1D,
+    "seq-global-maxpool": JLayers.SequenceGlobalMaxPooling1D,
     "global-avgpool": JLayers.GlobalAveragePooling1D,
     "k-maxpool": JLayers.KMaxPooling1D,
 }
