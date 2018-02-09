@@ -257,7 +257,7 @@ if __name__ == "__main__":
     aug_path = os.path.join(args.data, "train_aug*.npz")
     dictionary_path = os.path.join(args.data, "word_index.pkl")
     if args.use_augmented:
-        augmented_path = os.path.join(args.data, "train_aug*.npz")
+        augmented_path = os.path.join(args.data, "train_*.npz")
     else:
         augmented_path = ""
 

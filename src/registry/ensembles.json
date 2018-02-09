@@ -30,5 +30,25 @@
   "dense-rnn-emb-combined-1": {
     "files": ["rnn-emb_0-fasttext_7", "rnn-emb_0-combined_7", "dense-rnn-emb_0-combined_7"],
     "weights": [0.375, 0.375, 0.25]
+  },
+  "rnn-emb-combined-0": {
+    "files": ["rnn-emb_0-combined_7", "rnn-emb_1-combined_7"],
+    "weights": null
+  },
+  "rnn-emb-fasttext-combined-0": {
+    "files": ["rnn-emb_0-fasttext_7", "rnn-emb_0-combined_7", "rnn-emb_1-combined_7"],
+    "weights": null
+  },
+  "rnn-emb-fasttext-combined-1": {
+    "files": ["rnn-emb_0-fasttext_7", "rnn-emb_1-fasttext_7","rnn-emb_0-combined_7", "rnn-emb_1-combined_7"],
+    "weights": null
+  },
+  "rnn-emb-fasttext-combined-2": {
+    "files": ["rnn-emb_1-fasttext_7","rnn-emb_1-combined_7"],
+    "weights": null
+  },
+  "rnn-emb-fasttext-combined-3": {
+    "files": ["rnn-emb_1-fasttext_7", "rnn-emb_0-combined_7", "rnn-emb_1-combined_7"],
+    "weights": null
   }
 }
