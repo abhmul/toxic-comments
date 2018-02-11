@@ -28,6 +28,8 @@ class NpEmbeddings(np.ndarray):
         return Variable(J.from_numpy(self[J.to_numpy(indicies.data)].astype(np.float32)),
                         volatile=indicies.volatile)
 
+    def parameters(self):
+        return []
 
 class AEmbeddingModel(SLModel):
 

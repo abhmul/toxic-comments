@@ -28,7 +28,19 @@
       "fc_layers": [
         {"input_size": 128, "output_size": 32, "activation": "relu", "batchnorm": true},
         {"input_size": 32, "output_size": 6, "activation": "linear"}
-      ]
+      ],
+      "numpy_embeddings": true
+    },
+    "3-fasttext": {
+      "embeddings_name": "fasttext_aug_full",
+      "rnn_layers": [{"input_size": 300, "output_size": 512, "rnn_type": "gru", "input_dropout": 0.0, "dropout": 0.3,
+          "bidirectional": true, "num_layers": 2, "return_sequences": true}],
+      "pool": {"name": "seq-global-maxpool"},
+      "fc_layers": [
+        {"input_size": 512, "output_size": 128, "activation": "relu", "batchnorm": true},
+        {"input_size": 128, "output_size": 6, "activation": "linear"}
+      ],
+      "numpy_embeddings": true
     },
     "0-combined": {
       "embeddings_name": "combined_aug",
@@ -42,6 +54,16 @@
     },
     "1-combined": {
       "embeddings_name": "combined_aug",
+      "rnn_layers": [{"input_size": 900, "output_size": 128, "rnn_type": "gru", "input_dropout": 0.0, "dropout": 0.3,
+          "bidirectional": true, "num_layers": 2, "return_sequences": true}],
+      "pool": {"name": "seq-global-maxpool"},
+      "fc_layers": [
+        {"input_size": 128, "output_size": 32, "activation": "relu", "batchnorm": true},
+        {"input_size": 32, "output_size": 6, "activation": "linear"}
+      ]
+    },
+    "2-combined": {
+      "embeddings_name": "combined_aug_germ",
       "rnn_layers": [{"input_size": 900, "output_size": 128, "rnn_type": "gru", "input_dropout": 0.0, "dropout": 0.3,
           "bidirectional": true, "num_layers": 2, "return_sequences": true}],
       "pool": {"name": "seq-global-maxpool"},

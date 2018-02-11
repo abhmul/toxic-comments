@@ -154,7 +154,7 @@ def process_texts(train_name, test_name, *augmentation_names, path_to_data="../i
                                                                                test_name=test_name)
     # Now reload the texts 1-by-1 to map them to their respective indicies
     logging.info("Mapping words to their respective indicies for augmentation texts...")
-    for i, aug_name in enumerate(augmentation_names):
+    for i, aug_name in enumerate(augmentation_names, start=1):
         text = [text_to_word_sequence(comment) for comment in
                 clean(load_text(aug_name, path_to_data=path_to_data), clean_func)]
         text = [[word_index[word] for word in comment] for comment in tqdm(text)]

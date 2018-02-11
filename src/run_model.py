@@ -77,11 +77,11 @@ def create_filenames(train_id):
 
 
 def kfold(toxic_data):
+    # Initialize the model
+    model = load_model(args.model)
     ids, dataset = toxic_data.load_train(mode="sup")
     logging.info("Total Data: %s samples" % len(dataset))
     logging.info("Running %sfold validation" % args.kfold)
-    # Initialize the model
-    model = load_model(args.model)
 
     completed = set(range(args.num_completed))
     for i, (train_data, val_data) in enumerate(dataset.kfold(k=args.kfold, shuffle=True, seed=np.random.randint(2 ** 32))):
@@ -254,7 +254,6 @@ if __name__ == "__main__":
     # Create the paths for the data
     train_path = os.path.join(args.data, "train.npz")
     test_path = os.path.join(args.data, "test.npz")
-    aug_path = os.path.join(args.data, "train_aug*.npz")
     dictionary_path = os.path.join(args.data, "word_index.pkl")
     if args.use_augmented:
         augmented_path = os.path.join(args.data, "train_*.npz")
