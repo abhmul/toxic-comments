@@ -36,6 +36,7 @@ pyjet_layer_types = {
     "seq-global-maxpool": JLayers.SequenceGlobalMaxPooling1D,
     "global-avgpool": JLayers.GlobalAveragePooling1D,
     "k-maxpool": JLayers.KMaxPooling1D,
+    "concat": JLayers.Concatenate
 }
 
 
@@ -48,9 +49,6 @@ def get_pyjet_layer_type(layer_type):
 
 
 def build_pyjet_layer(name, **kwargs):
-    if name == "concat":
-        for 
-
     return get_pyjet_layer_type(name)(**kwargs)
 
 

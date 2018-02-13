@@ -71,6 +71,16 @@
         {"input_size": 128, "output_size": 32, "activation": "relu", "batchnorm": true},
         {"input_size": 32, "output_size": 6, "activation": "linear"}
       ]
+    },
+    "3-combined": {
+      "embeddings_name": "combined_aug",
+      "rnn_layers": [{"input_size": 900, "output_size": 128, "rnn_type": "gru", "input_dropout": 0.0, "dropout": 0.3,
+          "bidirectional": true, "num_layers": 2, "return_sequences": true}],
+      "pool": [{"name": "seq-global-maxpool"}, {"name": "seq-global-avgpool"}],
+      "fc_layers": [
+        {"input_size": 128, "output_size": 32, "activation": "relu", "batchnorm": true},
+        {"input_size": 32, "output_size": 6, "activation": "linear"}
+      ]
     }
   },
   "han": {
