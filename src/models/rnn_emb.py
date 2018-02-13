@@ -77,7 +77,7 @@ class RNNEmb(AEmbeddingModel):
             layer.reset_parameters()
         if self.use_multi_pool:
             for pool in self.pool:
-                pool.reset_paramters()
+                pool.reset_parameters()
         else:
             self.pool.reset_parameters()
         for layer in self.fc_layers:

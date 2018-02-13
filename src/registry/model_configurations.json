@@ -78,7 +78,7 @@
           "bidirectional": true, "num_layers": 2, "return_sequences": true}],
       "pool": [{"name": "seq-global-maxpool"}, {"name": "seq-global-avgpool"}],
       "fc_layers": [
-        {"input_size": 128, "output_size": 32, "activation": "relu", "batchnorm": true},
+        {"input_size": 256, "output_size": 32, "activation": "relu", "batchnorm": true},
         {"input_size": 32, "output_size": 6, "activation": "linear"}
       ]
     }
