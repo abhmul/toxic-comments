@@ -45,7 +45,7 @@ np.random.seed(SEED)
 
 # Params
 EPOCHS = args.epochs
-
+OPTIMIZER_TYPE = "sgd" if args.sgd else ("rmsprop" if args.use_rmsprop else "adam")
 TRAIN_ID = args.model + "_" + str(SEED)
 print("Training model with id:", TRAIN_ID)
 
@@ -76,6 +76,64 @@ def create_filenames(train_id):
     return model_file, submission_file, log_file
 
 
+def train_model(model, train_id, train_data, val_data, epochs, batch_size,
+                plot=True, load_model=False, optimizer_type='adam', use_auc_loss=False):
+    logging.info("Train Data: %s samples" % len(train_data))
+    logging.info("Val Data: %s samples" % len(val_data))
+    traingen = DatasetGenerator(train_data, batch_size=batch_size, shuffle=True, seed=np.random.randint(2 ** 32))
+    valgen = DatasetGenerator(val_data, batch_size=batch_size, shuffle=True, seed=np.random.randint(2 ** 32))
+
+    model_file, submission_file, log_file = create_filenames(train_id)
+
+    # callbacks
+    best_model = ModelCheckpoint(model_file, monitor="roc_auc_score", verbose=1, save_best_only=True)
+    log_to_file = MetricLogger(log_file)
+    callbacks = [best_model, log_to_file]
+    # This will plot the losses while training
+    if plot:
+        loss_plot_fpath = '../plots/loss_' + train_id + ".png"
+        loss_plotter = Plotter(monitor='loss', scale='log', save_to_file=loss_plot_fpath, block_on_end=False)
+        callbacks.append(loss_plotter)
+
+    # Setup the weights
+    if load_model:
+        logging.info("Loading the model from %s to resume training" % model_file)
+        model.load_state(model_file)
+    else:
+        logging.info("Resetting model parameters")
+        model.reset_parameters()
+
+    # And the optimizer
+    if optimizer_type == "sgd":
+        logging.info("Using sgd")
+        optimizer = optim.SGD(model.trainable_params(sgd=False), lr=0.01, momentum=0.9)
+        # callbacks.append(LRScheduler(optimizer, lambda epoch: 0.01 if epoch < 6 else 0.001))
+        callbacks.append(ReduceLROnPlateau(optimizer, monitor='loss', monitor_val=True, patience=1, verbose=1))
+    elif optimizer_type == "rmsprop":
+        logging.info("Using rmsprop")
+        optimizer = optim.RMSprop(model.trainable_params(sgd=False))
+    elif optimizer_type == "adam":
+        optimizer = optim.Adam(model.trainable_params(sgd=False))
+    else:
+        raise NotImplementedError("Optimizer Type %s" % optimizer_type)
+
+    loss = ROC_AUC_loss() if use_auc_loss else binary_cross_entropy_with_logits
+
+    # And finally train
+    tr_logs, val_logs = model.fit_generator(traingen, steps_per_epoch=traingen.steps_per_epoch,
+                                            epochs=epochs, callbacks=callbacks, optimizer=[optimizer],
+                                            loss_fn=loss, validation_generator=valgen,
+                                            validation_steps=valgen.steps_per_epoch, np_metrics=[roc_auc_score])
+
+    # Clear the memory associated with models and optimizers
+    del optimizer
+    del callbacks
+    if J.use_cuda:
+        torch.cuda.empty_cache()
+
+    return model
+
+
 def kfold(toxic_data):
     # Initialize the model
     model = load_model(args.model)
@@ -88,126 +146,23 @@ def kfold(toxic_data):
         if i in completed:
             continue
         logging.info("Training Fold%s" % i)
-        logging.info("Train Data: %s samples" % len(train_data))
-        logging.info("Val Data: %s samples" % len(val_data))
-        # And create the generators
-        traingen = DatasetGenerator(train_data, batch_size=args.batch_size, shuffle=True, seed=np.random.randint(2 ** 32))
-        valgen = DatasetGenerator(val_data, batch_size=args.batch_size, shuffle=True, seed=np.random.randint(2 ** 32))
-
-        model_file, submission_file, log_file = create_filenames(TRAIN_ID + "_fold%s" % i)
-
-        # callbacks
-        best_model = ModelCheckpoint(model_file, monitor="roc_auc_score", verbose=1, save_best_only=True)
-        log_to_file = MetricLogger(log_file)
-        callbacks = [best_model, log_to_file]
-        # This will plot the losses while training
-        if args.plot:
-            loss_plot_fpath = '../plots/loss_' + TRAIN_ID + "_fold%s" % i + ".png"
-            loss_plotter = Plotter(monitor='loss', scale='log', save_to_file=loss_plot_fpath, block_on_end=False)
-            callbacks.append(loss_plotter)
-
-        # Setup the weights
-        if args.load_model:
-            logging.info("Loading the model from %s to resume training" % model_file)
-            model.load_state(model_file)
-        else:
-            logging.info("Resetting model parameters")
-            model.reset_parameters()
-
-        # And the optimizer
-        if args.use_sgd:
-            optimizer = optim.SGD(model.trainable_params(sgd=False), lr=0.01, momentum=0.9)
-            # callbacks.append(LRScheduler(optimizer, lambda epoch: 0.01 if epoch < 6 else 0.001))
-            callbacks.append(ReduceLROnPlateau(optimizer, monitor='loss', monitor_val=True, patience=1, verbose=1))
-        elif args.use_rmsprop:
-            logging.info("Using rmsprop")
-            optimizer = optim.RMSprop(model.trainable_params(sgd=False))
-        else:
-            optimizer = optim.Adam(model.trainable_params(sgd=False))
-        optimizers = [optimizer]
-        if model.trainable_params(sgd=True):
-            print("Creating SGD optimizer with 0.001 embed lr")
-            optimizers = [optimizer, optim.SGD(model.trainable_params(sgd=True), lr=args.embed_lr)]
-            # optimizers = [optimizer, optim.SparseAdam(model.trainable_params(sgd=True))]
-            # print(optimizers[1].param_groups[0]['params'][0])
-
-        loss = ROC_AUC_loss() if args.use_auc_loss else binary_cross_entropy_with_logits
-
-        # And finally train
-        tr_logs, val_logs = model.fit_generator(traingen, steps_per_epoch=traingen.steps_per_epoch,
-                                                epochs=EPOCHS, callbacks=callbacks, optimizer=optimizers,
-                                                loss_fn=loss, validation_generator=valgen,
-                                                validation_steps=valgen.steps_per_epoch, np_metrics=[roc_auc_score])
-        # Clear the memory associated with models and optimizers
-        del optimizer
-        del optimizers
-        del callbacks
-        if J.use_cuda:
-            torch.cuda.empty_cache()
+        train_id = TRAIN_ID + "_fold%s" % i
+        model = train_model(model, train_id, train_data, val_data, EPOCHS, args.batch_size,
+                            plot=args.plot, load_model=args.load_model, optimizer_type=OPTIMIZER_TYPE,
+                            use_auc_loss=args.use_auc_loss)
 
     return model
 
 
 def train(toxic_data):
+    model = load_model(args.model)
     ids, dataset = toxic_data.load_train(mode="sup")
     logging.info("Total Data: %s samples" % len(dataset))
-    model_file, submission_file, log_file = create_filenames(TRAIN_ID)
-
     # Split the data
-    train_data, val_data = dataset.validation_split(split=args.split, shuffle=True, seed=np.random.randint(2**32))
-    logging.info("Train Data: %s samples" % len(train_data))
-    logging.info("Val Data: %s samples" % len(val_data))
-    # And create the generators
-    traingen = DatasetGenerator(train_data, batch_size=args.batch_size, shuffle=True, seed=np.random.randint(2**32))
-    valgen = DatasetGenerator(val_data, batch_size=args.batch_size, shuffle=True, seed=np.random.randint(2**32))
-
-    # callbacks
-    best_model = ModelCheckpoint(model_file, monitor="roc_auc_score", verbose=1, save_best_only=True)
-    log_to_file = MetricLogger(log_file)
-    callbacks = [best_model, log_to_file]
-    # This will plot the losses while training
-    if args.plot:
-        loss_plot_fpath = '../plots/loss_' + TRAIN_ID + ".png"
-        loss_plotter = Plotter(monitor='loss', scale='log', save_to_file=loss_plot_fpath, block_on_end=False)
-        callbacks.append(loss_plotter)
-
-    # Initialize the model
-    model = load_model(args.model)
-    if args.load_model:
-        print("Loading the model to resume training")
-        model.load_state(model_file)
-    # And the optimizer
-
-    if args.use_sgd:
-        optimizer = optim.SGD(model.trainable_params(sgd=False), lr=0.01, momentum=0.9)
-        # callbacks.append(LRScheduler(optimizer, lambda epoch: 0.01 if epoch < 6 else 0.001))
-        callbacks.append(ReduceLROnPlateau(optimizer, monitor='loss', monitor_val=True, patience=5, verbose=1))
-    else:
-        optimizer = optim.Adam(model.trainable_params(sgd=False))
-    optimizers = [optimizer]
-    if model.trainable_params(sgd=True):
-        print("Creating SGD optimizer with 0.001 embed lr")
-        optimizers = [optimizer, optim.SGD(model.trainable_params(sgd=True), lr=args.embed_lr)]
-        # optimizers = [optimizer, optim.SparseAdam(model.trainable_params(sgd=True))]
-        print(optimizers[1].param_groups[0]['params'][0])
-    # print(model.embeddings)
-
-    loss = ROC_AUC_loss() if args.use_auc_loss else binary_cross_entropy_with_logits
-
-    # And finally train
-    tr_logs, val_logs = model.fit_generator(traingen, steps_per_epoch=traingen.steps_per_epoch,
-                                            epochs=EPOCHS, callbacks=callbacks, optimizer=optimizers,
-                                            loss_fn=loss, np_metrics=[roc_auc_score],
-                                            validation_generator=valgen, validation_steps=valgen.steps_per_epoch)
-    if len(optimizers) > 1:
-        print(optimizers[1].param_groups[0]['params'][0])
-
-    # Clear the memory associated with models and optimizers
-    del optimizer
-    del optimizers
-    del callbacks
-    if J.use_cuda:
-        torch.cuda.empty_cache()
+    train_data, val_data = dataset.validation_split(split=args.split, shuffle=True, seed=np.random.randint(2 ** 32))
+    model = train_model(model, TRAIN_ID, train_data, val_data, EPOCHS, args.batch_size,
+                        plot=args.plot, load_model=args.load_model, optimizer_type=OPTIMIZER_TYPE,
+                        use_auc_loss=args.use_auc_loss)
 
     return model
 
