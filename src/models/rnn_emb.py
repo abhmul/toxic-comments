@@ -29,6 +29,7 @@ class RNNEmb(AEmbeddingModel):
         if isinstance(pool, list):
             self.pool = nn.ModuleList([build_pyjet_layer(**pool_i) for pool_i in pool])
             self.concat = Concatenate()
+        self.use_multi_pool = self.concat is not None
         self.fc_layers = nn.ModuleList([FullyConnected(**fc_layer) for fc_layer in fc_layers])
 
         self.resample = resample and self.num_features != self.rnn_layers[0].input_size
@@ -61,7 +62,7 @@ class RNNEmb(AEmbeddingModel):
         # Apply the mask
         x = L.unpad_sequences(x, seq_lens)
         # Do the pooling
-        if self.concat is not None:
+        if self.use_multi_pool:
             x = self.concat([pool_i(x) for pool_i in self.pool])
         else:
             x = self.pools[0](x)
@@ -74,7 +75,11 @@ class RNNEmb(AEmbeddingModel):
     def reset_parameters(self):
         for layer in self.rnn_layers:
             layer.reset_parameters()
-        self.pool.reset_parameters()
+        if self.use_multi_pool:
+            for pool in self.pool:
+                pool.reset_paramters()
+        else:
+            self.pool.reset_parameters()
         for layer in self.fc_layers:
             layer.reset_parameters()
         if self.resample:
