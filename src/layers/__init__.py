@@ -48,6 +48,9 @@ def get_pyjet_layer_type(layer_type):
 
 
 def build_pyjet_layer(name, **kwargs):
+    if name == "concat":
+        for 
+
     return get_pyjet_layer_type(name)(**kwargs)
 
 
