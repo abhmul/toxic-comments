@@ -54,5 +54,9 @@
   "rnn-emb-fasttext-combined-4": {
     "files": ["rnn-emb_0-fasttext_7", "rnn-emb_0-combined_7", "rnn-emb_1-combined_7", "rnn-emb_2-combined_7"],
     "weights": null
+  },
+  "rnn-emb-fasttext-combined-5": {
+    "files": ["rnn-emb_0-fasttext_7", "rnn-emb_0-combined_7", "rnn-emb_1-combined_7", "rnn-emb_3-combined_7"],
+    "weights": null
   }
 }
