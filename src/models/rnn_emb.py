@@ -10,7 +10,7 @@ import pyjet.layers.functions as L
 from pyjet.layers import RNN, FullyConnected, Conv1D, Concatenate
 from layers import RNN as legacy_RNN
 from layers import FullyConnected as legacy_FullyConnected
-from layers import build_pyjet_layer as build_pool
+from layers import build_pyjet_layer
 from layers import build_layer
 
 from registry import registry
@@ -26,13 +26,16 @@ class RNNEmb(AEmbeddingModel):
 
         # Some legacy handling
         self.legacy = legacy
+        rnn_func = RNN
+        fully_connected_func = FullyConnected
+        build_pool = build_pyjet_layer
         if legacy:
-            RNN = legacy_RNN
-            FullyConnected = legacy_FullyConnected
+            rnn_func = legacy_RNN
+            fully_connected_func = legacy_FullyConnected
             build_pool = build_layer
 
         # RNN Block
-        self.rnn_layers = nn.ModuleList([RNN(**rnn_layer) for rnn_layer in rnn_layers])
+        self.rnn_layers = nn.ModuleList([rnn_func(**rnn_layer) for rnn_layer in rnn_layers])
         # Need to work around to get backward compatibility
         if isinstance(pool, dict):
             self.pool = build_pool(**pool)
@@ -41,7 +44,7 @@ class RNNEmb(AEmbeddingModel):
             self.pool = nn.ModuleList([build_pool(**pool_i) for pool_i in pool])
             self.concat = Concatenate()
         self.use_multi_pool = self.concat is not None
-        self.fc_layers = nn.ModuleList([FullyConnected(**fc_layer) for fc_layer in fc_layers])
+        self.fc_layers = nn.ModuleList([fully_connected_func(**fc_layer) for fc_layer in fc_layers])
 
         self.resample = resample and self.num_features != self.rnn_layers[0].input_size
         if self.resample:
