@@ -58,5 +58,43 @@
   "rnn-emb-fasttext-combined-5": {
     "files": ["rnn-emb_0-fasttext_7", "rnn-emb_0-combined_7", "rnn-emb_1-combined_7", "rnn-emb_3-combined_7"],
     "weights": null
+  },
+  "rnn-emb-fasttext-combined-6": {
+    "files": ["rnn-emb_1-fasttext_7", "rnn-emb_1-combined_7", "rnn-emb_3-combined_7"],
+    "weights": null,
+    "data": ["../processed_input/augmented", "../processed_input/augmented", "../processed_input/augmented",
+      "../processed_input/augmented"]
+  },
+  "rnn-emb-fasttext-combined-7": {
+    "files": ["dense-rnn-emb_0-combined_7", "rnn-emb_1-fasttext_7", "rnn-emb_1-combined_7", "rnn-emb_3-combined_7"],
+    "weights": null,
+    "data": ["../processed_input/augmented", "../processed_input/augmented", "../processed_input/augmented",
+      "../processed_input/augmented"]
+  },
+  "rnn-emb-fasttext-combined-8": {
+    "files": [
+      "han_0-fasttext_7",
+      "rnn-emb_2-combined_7",
+      "dense-rnn-emb_0-combined_7",
+      "rnn-emb_1-fasttext_7",
+      "rnn-emb_1-combined_7",
+      "rnn-emb_3-combined_7"
+    ],
+    "weights": null,
+    "data": [
+      "../processed_input/augmented_sent",
+      "../processed_input/augmented_germanic",
+      "../processed_input/augmented",
+      "../processed_input/augmented",
+      "../processed_input/augmented",
+      "../processed_input/augmented"
+    ]
+  },
+  "rnn-emb-fasttext-combined-9": {
+    "files": ["rnn-emb_0-fasttext_7", "rnn-emb_0-combined_7", "dense-rnn-emb_0-combined_7", "rnn-emb_1-fasttext_7", "rnn-emb_1-combined_7", "rnn-emb_3-combined_7"],
+    "weights": null,
+    "data": ["../processed_input/augmented", "../processed_input/augmented", "../processed_input/augmented", "../processed_input/augmented", "../processed_input/augmented",
+      "../processed_input/augmented"]
   }
+
 }

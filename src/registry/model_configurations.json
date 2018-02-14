@@ -8,7 +8,8 @@
       "fc_layers": [
         {"input_size": 128, "output_size": 32, "activation": "relu", "batchnorm": true},
         {"input_size": 32, "output_size": 6, "activation": "linear"}
-      ]
+      ],
+      "legacy": true
     },
     "1-fasttext": {
       "embeddings_name": "fasttext_aug",
@@ -50,7 +51,8 @@
       "fc_layers": [
         {"input_size": 128, "output_size": 32, "activation": "relu", "batchnorm": true},
         {"input_size": 32, "output_size": 6, "activation": "linear"}
-      ]
+      ],
+      "legacy": true
     },
     "1-combined": {
       "embeddings_name": "combined_aug",

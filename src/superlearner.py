@@ -7,10 +7,11 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 import numpy as np
-from scipy.special import expit
+from scipy.special import expit, logit
 
 import pyjet.backend as J
 from pyjet.models import SLModel
+from pyjet.metrics import accuracy_with_logits
 from pyjet.data import DatasetGenerator, NpDataset
 from toxic_dataset import ToxicData, LABEL_NAMES
 from models import load_model
@@ -64,20 +65,42 @@ def expand_model_names(model_names, k):
     return expanded_names
 
 
-def superlearner(model_names, dataset, batch_size, k, seed=7):
+def load_dataset(data_path):
+    train_path = os.path.join(data_path, "train.npz")
+    test_path = os.path.join(data_path, "test.npz")
+    dictionary_path = os.path.join(data_path, "word_index.pkl")
+    # Load the data
+    toxic = ToxicData(train_path, test_path, dictionary_path)
+    train_ids, train_dataset = toxic.load_train(mode="sup")
+    return train_dataset
+
+
+def superlearner(model_names, data_paths, batch_size, k, seed=7):
     num_base_learners = len(model_names)
+    assert num_base_learners == len(data_paths)
+    logging.info("Using %s base learners" % num_base_learners)
     model_names = expand_model_names(model_names, k)
     # Build the new train data to train the meta learner on
-    pred_X = np.zeros((len(dataset), num_base_learners, len(LABEL_NAMES)))
-    pred_Y = np.zeros((len(dataset), len(LABEL_NAMES)))
+    pred_X, pred_Y = None, None
     for j, model_foldset in enumerate(model_names):
-        model_id = extract_model_info(model_foldset[0])
+        dataset = load_dataset(data_paths[j])
+        logging.info("Loaded dataset from %s" % data_paths[j])
+        if j == 0:
+            pred_X = np.zeros((len(dataset), num_base_learners, len(LABEL_NAMES)), dtype=np.float32)
+            pred_Y = np.zeros((len(dataset), len(LABEL_NAMES)), dtype=np.float32)
+        else:
+            assert len(dataset) == pred_X.shape[0]
+        model_id = extract_model_info(model_foldset[0])[0]
+        logging.info("Loading model %s" % model_id)
         model = load_model(model_id)
         cur_sample_ind = 0
         # Set the random seed so we get the same folds
         np.random.seed(seed)
         for i, (train_data, val_data) in enumerate(dataset.kfold(k=k, shuffle=True, seed=np.random.randint(2 ** 32))):
-            model.load_state(model_foldset[i] + ".state")
+            logging.info("Getting train predictions for fold%s" % i)
+            model_file = os.path.join("../models/", model_foldset[i] + ".state")
+            model.load_state(model_file)
+            logging.info("Loaded weights from %s" % model_file)
             model_id_temp, train_seed, fold_num = extract_model_info(model_foldset[i])
 
             # Some sanity checks
@@ -100,6 +123,7 @@ def superlearner(model_names, dataset, batch_size, k, seed=7):
                                                                                                verbose=1)
             cur_sample_ind += len(val_data)
 
+        assert cur_sample_ind == len(dataset)
         # Clean up cuda memory
         del model
         if J.use_cuda:
@@ -108,14 +132,19 @@ def superlearner(model_names, dataset, batch_size, k, seed=7):
     # Now train 6 dense layers
     weights = np.zeros((num_base_learners, len(LABEL_NAMES)))
     for i, label in enumerate(LABEL_NAMES):
+        logging.info("Training logistic regression for label %s" % label)
         pred_dataset = NpDataset(x=pred_X[:, :, i], y=pred_Y[:, i:i+1])
         datagen = DatasetGenerator(pred_dataset, batch_size=len(pred_dataset), shuffle=False)
         logistic_reg = build_model(num_base_learners, 1)
         optimizer = torch.optim.SGD(logistic_reg.parameters(), lr=0.01, momentum=0.9)
-        logistic_reg.fit_generator(datagen, steps_per_epoch=datagen.steps_per_epoch, epochs=100,
-                                   optimizer=optimizer, loss_fn=F.binary_cross_entropy_with_logits)
+        train_logs, val_logs = logistic_reg.fit_generator(datagen, steps_per_epoch=datagen.steps_per_epoch, epochs=1000,
+                                                          optimizer=optimizer, loss_fn=F.binary_cross_entropy_with_logits,
+                                                          metrics=[accuracy_with_logits], verbose=0)
+        logging.info("Final Loss: %s" % train_logs["loss"][-1])
+        logging.info("Final Accuracy: %s" % train_logs["accuracy_with_logits"][-1])
         weight = logistic_reg.torch_module.linear.weight.data
         weights[:, i] = weight.cpu().numpy().flatten()
+        logging.info("Trained weights: {}".format(weights[:, i]))
     return weights
 
 
@@ -129,9 +158,9 @@ def ensemble_submissions(submission_fnames, weights):
     submissions = [pd.read_csv(sub_fname)[LABEL_NAMES].values for sub_fname in submission_fnames]
     # Combine them based on their respective weights
     combined = 0
-    for i, sub in enumerate(submissions):
-        combined = combined + weights[i][np.newaxis] * sub
-    combined = expit(combined)
+    for j, sub in enumerate(submissions):
+        combined = combined + weights[j][np.newaxis] * logit(sub)
+    # combined = expit(combined)
     return ids, combined
 
 
@@ -139,20 +168,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     SEED = args.seed
     np.random.seed(SEED)
-    # Create the paths for the data
-    train_path = os.path.join(args.data, "train.npz")
-    test_path = os.path.join(args.data, "test.npz")
-    dictionary_path = os.path.join(args.data, "word_index.pkl")
-    # Load the data
-    toxic = ToxicData(train_path, test_path, dictionary_path)
-    train_ids, train_dataset = toxic.load_train(mode="sup")
-
-
     logging.info("Opening the ensemble configs")
     ensemble_config_dict = load_ensemble_configs()
     ensemble_config = get_ensemble_config(ensemble_config_dict, args.ensemble_id)
     # Run the superlearner
-    weights = superlearner(ensemble_config["files"], train_dataset, batch_size=args.batch_size, k=args.kfold, seed=SEED)
+    weights = superlearner(ensemble_config["files"], ensemble_config["data"], batch_size=args.batch_size, k=args.kfold, seed=SEED)
     # Run the ensembling
     submission_fnames = [os.path.join("../submissions/", fname + ".csv") for fname in ensemble_config["files"]]
     test_ids, combined_preds = ensemble_submissions(submission_fnames, weights)
