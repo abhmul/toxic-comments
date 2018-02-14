@@ -95,6 +95,31 @@
     "weights": null,
     "data": ["../processed_input/augmented", "../processed_input/augmented", "../processed_input/augmented", "../processed_input/augmented", "../processed_input/augmented",
       "../processed_input/augmented"]
+  },
+  "rnn-emb-fasttext-combined-10": {
+    "files": [
+      "rnn-emb_0-fasttext_7",
+      "rnn-emb_1-fasttext_7",
+      "rnn-emb_2-fasttext_7",
+      "rnn-emb_0-combined_7",
+      "rnn-emb_1-combined_7",
+      "rnn-emb_2-combined_7",
+      "rnn-emb_3-combined_7",
+      "han_0-fasttext_7",
+      "dense-rnn-emb_0-combined_7"
+    ],
+    "weights": null,
+    "data": [
+      "../processed_input/augmented",
+      "../processed_input/augmented",
+      "../processed_input/augmented_full",
+      "../processed_input/augmented",
+      "../processed_input/augmented",
+      "../processed_input/augmented_germanic",
+      "../processed_input/augmented",
+      "../processed_input/augmented_sent",
+      "../processed_input/augmented"
+    ]
   }
 
 }

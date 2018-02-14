@@ -129,7 +129,8 @@ class HAN(AEmbeddingModel):
         for fc_layer in self.fc_layers:
             x = fc_layer(x)
         self.loss_in = x  # B x 6
-        return F.sigmoid(self.loss_in)
+        return self.loss_in
+        # return F.sigmoid(self.loss_in)
 
 
 registry.register_model("han", HAN)
