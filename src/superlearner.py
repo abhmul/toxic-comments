@@ -8,6 +8,8 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from scipy.special import expit, logit
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import log_loss, accuracy_score
 
 import pyjet.backend as J
 from pyjet.models import SLModel
@@ -21,6 +23,9 @@ parser.add_argument('-e', '--ensemble_id', required=True, type=str, help='The id
 parser.add_argument('--batch_size', type=int, default=32, help="Batch size to use when running script")
 parser.add_argument('--seed', type=int, default=7, help="Seed fo the random number generator")
 parser.add_argument('--kfold', type=int, default=10, help="Runs kfold validation with the input number")
+parser.add_argument('--create_preds', action="store_true", help="Loads the models and predicts with them")
+parser.add_argument('--superlearn', action="store_true", help="Trains the superlearner")
+parser.add_argument('--use_sklearn', action="store_true", help="Uses Scikit-learn's logistic regression")
 
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -129,21 +134,48 @@ def superlearner(model_names, data_paths, batch_size, k, seed=7):
         if J.use_cuda:
             torch.cuda.empty_cache()
 
+    return pred_X, pred_Y
+
+
+def train_superlearner(pred_X, pred_Y):
     # Now train 6 dense layers
+    num_base_learners = pred_X.shape[1]
     weights = np.zeros((num_base_learners, len(LABEL_NAMES)))
     for i, label in enumerate(LABEL_NAMES):
         logging.info("Training logistic regression for label %s" % label)
-        pred_dataset = NpDataset(x=pred_X[:, :, i], y=pred_Y[:, i:i+1])
+        pred_dataset = NpDataset(x=pred_X[:, :, i], y=pred_Y[:, i:i + 1])
         datagen = DatasetGenerator(pred_dataset, batch_size=len(pred_dataset), shuffle=False)
         logistic_reg = build_model(num_base_learners, 1)
-        optimizer = torch.optim.SGD(logistic_reg.parameters(), lr=0.01, momentum=0.9)
+        optimizer = torch.optim.SGD(logistic_reg.parameters(), lr=0.01)
         train_logs, val_logs = logistic_reg.fit_generator(datagen, steps_per_epoch=datagen.steps_per_epoch, epochs=1000,
-                                                          optimizer=optimizer, loss_fn=F.binary_cross_entropy_with_logits,
+                                                          optimizer=optimizer,
+                                                          loss_fn=F.binary_cross_entropy_with_logits,
                                                           metrics=[accuracy_with_logits], verbose=0)
         logging.info("Final Loss: %s" % train_logs["loss"][-1])
         logging.info("Final Accuracy: %s" % train_logs["accuracy_with_logits"][-1])
         weight = logistic_reg.torch_module.linear.weight.data
         weights[:, i] = weight.cpu().numpy().flatten()
+        logging.info("Trained weights: {}".format(weights[:, i]))
+    return weights
+
+
+def train_superlearner_sklearn(pred_X, pred_Y):
+    # Now train 6 dense layers
+    num_base_learners = pred_X.shape[1]
+    weights = np.zeros((num_base_learners, len(LABEL_NAMES)))
+    for i, label in enumerate(LABEL_NAMES):
+        logging.info("Training logistic regression for label %s" % label)
+        X = pred_X[:, :, i]
+        Y = pred_Y[:, i]
+        logistic_reg = LogisticRegression(C=1e32, fit_intercept=False, max_iter=100000)
+        logistic_reg.fit(X, Y)
+        # For scoring
+        loss = log_loss(Y, logistic_reg.predict_proba(X))
+        acc = accuracy_score(Y, logistic_reg.predict(X))
+        logging.info("Final Loss: %s" % loss)
+        logging.info("Final Accuracy: %s" % acc)
+        weight = logistic_reg.coef_
+        weights[:, i] = weight.flatten()
         logging.info("Trained weights: {}".format(weights[:, i]))
     return weights
 
@@ -171,10 +203,26 @@ if __name__ == "__main__":
     logging.info("Opening the ensemble configs")
     ensemble_config_dict = load_ensemble_configs()
     ensemble_config = get_ensemble_config(ensemble_config_dict, args.ensemble_id)
-    # Run the superlearner
-    weights = superlearner(ensemble_config["files"], ensemble_config["data"], batch_size=args.batch_size, k=args.kfold, seed=SEED)
-    # Run the ensembling
-    submission_fnames = [os.path.join("../submissions/", fname + ".csv") for fname in ensemble_config["files"]]
-    test_ids, combined_preds = ensemble_submissions(submission_fnames, weights)
-    ToxicData.save_submission(os.path.join("../submissions/", "superlearner_" + args.ensemble_id + ".csv"), test_ids,
-                              combined_preds)
+    pred_x, pred_y = None, None
+    pred_savepath = os.path.join("../superlearner_preds/", args.ensemble_id + ".npz")
+    if args.create_preds:
+        # Run the superlearner
+        pred_x, pred_y = superlearner(ensemble_config["files"], ensemble_config["data"], batch_size=args.batch_size, k=args.kfold, seed=SEED)
+        np.savez(pred_savepath, X=pred_x, Y=pred_y)
+        logging.info("Saved preds to %s" % pred_savepath)
+    if args.superlearn:
+        if pred_x is None:
+            npz_file = np.load(pred_savepath)
+            pred_x = npz_file["X"]
+            pred_y = npz_file["Y"]
+            logging.info("Loaded preds from %s" % pred_savepath)
+        if args.use_sklearn:
+            logging.info("Training superlearner with scikit-learn")
+            weights = train_superlearner_sklearn(pred_x, pred_y)
+        else:
+            weights = train_superlearner(pred_x, pred_y)
+        # Run the ensembling
+        submission_fnames = [os.path.join("../submissions/", fname + ".csv") for fname in ensemble_config["files"]]
+        test_ids, combined_preds = ensemble_submissions(submission_fnames, weights)
+        ToxicData.save_submission(os.path.join("../submissions/", "superlearner_" + args.ensemble_id + ".csv"), test_ids,
+                                  combined_preds)
