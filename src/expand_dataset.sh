@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-source activate dl
-#python3 extend_dataset.py ../input/train.csv --result-path ../input/ --languages af
+#source activate dl
+python3 extend_dataset.py ../input/train.csv --result-path ../input/ --languages af
 python3 extend_dataset.py ../input/train.csv --result-path ../input/ --languages sq
 python3 extend_dataset.py ../input/train.csv --result-path ../input/ --languages am
 python3 extend_dataset.py ../input/train.csv --result-path ../input/ --languages ar

@@ -86,7 +86,7 @@ def train_model(model, train_id, train_data, val_data, epochs, batch_size,
     model_file, submission_file, log_file = create_filenames(train_id)
 
     # callbacks
-    best_model = ModelCheckpoint(model_file, monitor="roc_auc_score", verbose=1, save_best_only=True)
+    best_model = ModelCheckpoint(model_file, monitor="loss", verbose=1, save_best_only=True)
     log_to_file = MetricLogger(log_file)
     callbacks = [best_model, log_to_file]
     # This will plot the losses while training
