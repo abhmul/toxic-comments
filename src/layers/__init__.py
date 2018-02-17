@@ -38,7 +38,8 @@ pyjet_layer_types = {
     "global-avgpool": JLayers.GlobalAveragePooling1D,
     "k-maxpool": JLayers.KMaxPooling1D,
     "context-att": JLayers.ContextAttention,
-    "concat": JLayers.Concatenate
+    "concat": JLayers.Concatenate,
+    "none": lambda: JLayers.Identity
 }
 
 

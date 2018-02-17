@@ -45,7 +45,7 @@ np.random.seed(SEED)
 
 # Params
 EPOCHS = args.epochs
-OPTIMIZER_TYPE = "sgd" if args.sgd else ("rmsprop" if args.use_rmsprop else "adam")
+OPTIMIZER_TYPE = "sgd" if args.use_sgd else ("rmsprop" if args.use_rmsprop else "adam")
 TRAIN_ID = args.model + "_" + str(SEED)
 print("Training model with id:", TRAIN_ID)
 

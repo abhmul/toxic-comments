@@ -191,7 +191,10 @@ def ensemble_submissions(submission_fnames, weights):
     # Combine them based on their respective weights
     combined = 0
     for j, sub in enumerate(submissions):
-        combined = combined + weights[j][np.newaxis] * logit(sub)
+        if np.all((0 <= sub) & (sub <= 1.)):
+            logging.info("Applying logit to submission %s" % submission_fnames[j])
+            sub = logit(sub)
+        combined = combined + weights[j][np.newaxis] * sub
     # combined = expit(combined)
     return ids, combined
 
@@ -223,6 +226,8 @@ if __name__ == "__main__":
             weights = train_superlearner(pred_x, pred_y)
         # Run the ensembling
         submission_fnames = [os.path.join("../submissions/", fname + ".csv") for fname in ensemble_config["files"]]
+        logging.info("Using submission_fnames: " + str(submission_fnames))
         test_ids, combined_preds = ensemble_submissions(submission_fnames, weights)
+        logging.info("Combined preds shape: {}".format(combined_preds.shape))
         ToxicData.save_submission(os.path.join("../submissions/", "superlearner_" + args.ensemble_id + ".csv"), test_ids,
                                   combined_preds)
