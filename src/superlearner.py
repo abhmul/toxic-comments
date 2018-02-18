@@ -17,6 +17,7 @@ from pyjet.metrics import accuracy_with_logits
 from pyjet.data import DatasetGenerator, NpDataset
 from toxic_dataset import ToxicData, LABEL_NAMES
 from models import load_model
+from file_utils import safe_open_dir
 
 parser = argparse.ArgumentParser(description='Train the models.')
 parser.add_argument('-e', '--ensemble_id', required=True, type=str, help='The id of the ensemble to create')
@@ -80,60 +81,109 @@ def load_dataset(data_path):
     return train_dataset
 
 
-def superlearner(model_names, data_paths, batch_size, k, seed=7):
+def predict_val(model_foldset, data_path, batch_size, k, seed=7, pred_Y=None):
+    dataset = load_dataset(data_path)
+    logging.info("Loaded dataset from %s" % data_path)
+
+    # Initialize the predictions array
+    pred_X = np.zeros((len(dataset), len(LABEL_NAMES)), dtype=np.float32)
+    # Used to know whether to check if the y's match up, or to build the y's
+    if pred_Y is None:
+        check_ys = False
+        pred_Y = np.zeros((len(dataset), len(LABEL_NAMES)), dtype=np.float32)
+    else:
+        check_ys = True
+
+    # Extract the model
+    model_id = extract_model_info(model_foldset[0])[0]
+    logging.info("Loading model %s" % model_id)
+    model = load_model(model_id)
+
+    cur_sample_ind = 0
+    # Set the random seed so we get the same folds
+    np.random.seed(seed)
+    for i, (train_data, val_data) in enumerate(dataset.kfold(k=k, shuffle=True, seed=np.random.randint(2 ** 32))):
+        logging.info("Getting train predictions for fold%s" % i)
+        model_file = os.path.join("../models/", model_foldset[i] + ".state")
+        model.load_state(model_file)
+        logging.info("Loaded weights from %s" % model_file)
+        model_id_temp, train_seed, fold_num = extract_model_info(model_foldset[i])
+
+        # Some sanity checks
+        assert train_seed == seed
+        assert fold_num == i
+        assert model_id_temp == model_id
+
+        val_data.output_labels = False
+        valgen = DatasetGenerator(val_data, batch_size=batch_size, shuffle=False)
+
+        # Predict on the validation set
+        if not check_ys:
+            logging.info("Constructing ys")
+            # For the first model, we'll gather the labels
+            pred_Y[cur_sample_ind:cur_sample_ind + len(val_data)] = val_data.y
+        else:
+            logging.info("Checking that ys are correct")
+            # For the other models we'll check to make sure the labels are the same
+            assert np.all(pred_Y[cur_sample_ind:cur_sample_ind + len(val_data)] == val_data.y)
+        pred_X[cur_sample_ind:cur_sample_ind + len(val_data)] = model.predict_generator(valgen,
+                                                                                        prediction_steps=valgen.steps_per_epoch,
+                                                                                        verbose=1)
+        cur_sample_ind += len(val_data)
+
+    assert cur_sample_ind == len(dataset)
+    # Clean up cuda memory
+    del model
+    if J.use_cuda:
+        torch.cuda.empty_cache()
+
+    return pred_X, pred_Y
+
+
+def create_preds(model_names, data_paths, batch_size, k, seed=7, savedir="../superlearner/"):
     num_base_learners = len(model_names)
     assert num_base_learners == len(data_paths)
     logging.info("Using %s base learners" % num_base_learners)
-    model_names = expand_model_names(model_names, k)
+    expanded_model_names = expand_model_names(model_names, k)
     # Build the new train data to train the meta learner on
     pred_X, pred_Y = None, None
-    for j, model_foldset in enumerate(model_names):
-        dataset = load_dataset(data_paths[j])
-        logging.info("Loaded dataset from %s" % data_paths[j])
+    for j, model_foldset in enumerate(expanded_model_names):
+        # Try to load it, otherwise create the predictions
+        try:
+            single_pred_X, pred_Y = load_predictions(model_names[j], savedir, pred_Y=pred_Y)
+        except IOError:
+            # If the file is not there, create it
+            logging.info("Couldn't find predictions for " + model_names[j] + ", creating instead")
+            single_pred_X, pred_Y = predict_val(model_foldset, data_paths[j], batch_size, k, seed=seed, pred_Y=pred_Y)
+            save_predictions(single_pred_X, pred_Y, model_names[j], savedir)
+
+        assert single_pred_X.ndim == 2
+        # Construct the X array if this is our first iteration
         if j == 0:
-            pred_X = np.zeros((len(dataset), num_base_learners, len(LABEL_NAMES)), dtype=np.float32)
-            pred_Y = np.zeros((len(dataset), len(LABEL_NAMES)), dtype=np.float32)
-        else:
-            assert len(dataset) == pred_X.shape[0]
-        model_id = extract_model_info(model_foldset[0])[0]
-        logging.info("Loading model %s" % model_id)
-        model = load_model(model_id)
-        cur_sample_ind = 0
-        # Set the random seed so we get the same folds
-        np.random.seed(seed)
-        for i, (train_data, val_data) in enumerate(dataset.kfold(k=k, shuffle=True, seed=np.random.randint(2 ** 32))):
-            logging.info("Getting train predictions for fold%s" % i)
-            model_file = os.path.join("../models/", model_foldset[i] + ".state")
-            model.load_state(model_file)
-            logging.info("Loaded weights from %s" % model_file)
-            model_id_temp, train_seed, fold_num = extract_model_info(model_foldset[i])
+            pred_X = np.zeros((single_pred_X.shape[0], num_base_learners, single_pred_X.shape[1]), dtype=np.float32)
 
-            # Some sanity checks
-            assert train_seed == seed
-            assert fold_num == i
-            assert model_id_temp == model_id
+        assert pred_X.shape[0] == single_pred_X.shape[0]
+        assert pred_X.shape[2] == single_pred_X.shape[1]
+        pred_X[:, j] = single_pred_X
 
-            val_data.output_labels = False
-            valgen = DatasetGenerator(val_data, batch_size=batch_size, shuffle=False)
+    return pred_X, pred_Y
 
-            # Predict on the validation set
-            if j == 0:
-                # For the first model, we'll gather the labels
-                pred_Y[cur_sample_ind:cur_sample_ind + len(val_data)] = val_data.y
-            else:
-                # For the other models we'll check to make sure the labels are the same
-                assert np.all(pred_Y[cur_sample_ind:cur_sample_ind + len(val_data)] == val_data.y)
-            pred_X[cur_sample_ind:cur_sample_ind + len(val_data), j] = model.predict_generator(valgen,
-                                                                                               prediction_steps=valgen.steps_per_epoch,
-                                                                                               verbose=1)
-            cur_sample_ind += len(val_data)
 
-        assert cur_sample_ind == len(dataset)
-        # Clean up cuda memory
-        del model
-        if J.use_cuda:
-            torch.cuda.empty_cache()
+def save_predictions(pred_X, pred_Y, model_name, pred_savedir):
+    savepath = os.path.join(pred_savedir, model_name + ".npz")
+    np.savez(savepath, X=pred_X, Y=pred_Y)
 
+
+def load_predictions(model_name, pred_savedir, pred_Y=None):
+    savepath = os.path.join(pred_savedir, model_name + ".npz")
+    logging.info("Loading predictions from " + savepath)
+    preds = np.load(savepath)
+    # Load the predictions
+    pred_X = preds["X"]
+    if pred_Y is None:
+        pred_Y = preds["Y"]
+    else:
+        assert np.all(pred_Y == preds["Y"])
     return pred_X, pred_Y
 
 
@@ -206,28 +256,23 @@ if __name__ == "__main__":
     logging.info("Opening the ensemble configs")
     ensemble_config_dict = load_ensemble_configs()
     ensemble_config = get_ensemble_config(ensemble_config_dict, args.ensemble_id)
-    pred_x, pred_y = None, None
-    pred_savepath = os.path.join("../superlearner_preds/", args.ensemble_id + ".npz")
-    if args.create_preds:
-        # Run the superlearner
-        pred_x, pred_y = superlearner(ensemble_config["files"], ensemble_config["data"], batch_size=args.batch_size, k=args.kfold, seed=SEED)
-        np.savez(pred_savepath, X=pred_x, Y=pred_y)
-        logging.info("Saved preds to %s" % pred_savepath)
+    pred_savepath = safe_open_dir("../superlearner_preds/")
+    # Get the predictions
+    pred_x, pred_y = create_preds(ensemble_config["files"], ensemble_config["data"], batch_size=args.batch_size,
+                                  k=args.kfold, seed=SEED, savedir=pred_savepath)
+
+    # Train the meta-learner
     if args.superlearn:
-        if pred_x is None:
-            npz_file = np.load(pred_savepath)
-            pred_x = npz_file["X"]
-            pred_y = npz_file["Y"]
-            logging.info("Loaded preds from %s" % pred_savepath)
         if args.use_sklearn:
             logging.info("Training superlearner with scikit-learn")
             weights = train_superlearner_sklearn(pred_x, pred_y)
         else:
             weights = train_superlearner(pred_x, pred_y)
+
         # Run the ensembling
         submission_fnames = [os.path.join("../submissions/", fname + ".csv") for fname in ensemble_config["files"]]
         logging.info("Using submission_fnames: " + str(submission_fnames))
         test_ids, combined_preds = ensemble_submissions(submission_fnames, weights)
         logging.info("Combined preds shape: {}".format(combined_preds.shape))
-        ToxicData.save_submission(os.path.join("../submissions/", "superlearner_" + args.ensemble_id + ".csv"), test_ids,
-                                  combined_preds)
+        ToxicData.save_submission(os.path.join("../submissions/", "superlearner_" + args.ensemble_id + ".csv"),
+                                  test_ids, combined_preds)

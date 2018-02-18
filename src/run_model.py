@@ -134,6 +134,16 @@ def train_model(model, train_id, train_data, val_data, epochs, batch_size,
     return model
 
 
+def test_model(model, train_id, test_data, batch_size):
+    testgen = DatasetGenerator(test_data, batch_size=batch_size, shuffle=False)
+    model_file, submission_file, log_file = create_filenames(train_id)
+    # Initialize the model
+    model.load_state(model_file)
+
+    # Get the predictions
+    return model.predict_generator(testgen, testgen.steps_per_epoch, verbose=1)
+
+
 def kfold(toxic_data):
     # Initialize the model
     model = load_model(args.model)
@@ -173,30 +183,20 @@ def test(toxic_data, model=None):
     assert not test_data.output_labels
     logging.info("Test Data: %s samples" % len(test_data))
 
-    # And create the generators
-    testgen = DatasetGenerator(test_data, batch_size=args.test_batch_size, shuffle=False)
     # And create the model
     if model is None:
         model = load_model(args.model)
+
     # Kfold prediction
     if args.kfold:
         predictions = 0.
         for i in range(args.kfold):
             logging.info("Predicting fold %s" % i)
-            model_file, submission_file, log_file = create_filenames(TRAIN_ID + "_fold%s" % i)
-            # Initialize the model
-            model.load_state(model_file)
-
             # Get the predictions
-            predictions = predictions + model.predict_generator(testgen, testgen.steps_per_epoch, verbose=1)
+            predictions = predictions + test_model(model, TRAIN_ID + "_fold%s" % i, test_data, args.test_batch_size)
         predictions = predictions / args.kfold
     else:
-        model_file, submission_file, log_file = create_filenames(TRAIN_ID)
-        # Initialize the model
-        model.load_state(model_file)
-
-        # Get the predictions
-        predictions = model.predict_generator(testgen, testgen.steps_per_epoch, verbose=1)
+        predictions = test_model(model, TRAIN_ID, test_data, args.test_batch_size)
 
     model_file, submission_file, log_file = create_filenames(TRAIN_ID)
     # Run the postprocessing
