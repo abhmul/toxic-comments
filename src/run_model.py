@@ -131,7 +131,7 @@ def train_model(model, train_id, train_data, val_data, epochs, batch_size,
     if J.use_cuda:
         torch.cuda.empty_cache()
 
-    return model
+    return model, tr_logs, val_logs
 
 
 def test_model(model, train_id, test_data, batch_size):
@@ -150,6 +150,7 @@ def kfold(toxic_data):
     ids, dataset = toxic_data.load_train(mode="sup")
     logging.info("Total Data: %s samples" % len(dataset))
     logging.info("Running %sfold validation" % args.kfold)
+    best_vals = []
 
     completed = set(range(args.num_completed))
     for i, (train_data, val_data) in enumerate(dataset.kfold(k=args.kfold, shuffle=True, seed=np.random.randint(2 ** 32))):
@@ -157,10 +158,12 @@ def kfold(toxic_data):
             continue
         logging.info("Training Fold%s" % i)
         train_id = TRAIN_ID + "_fold%s" % i
-        model = train_model(model, train_id, train_data, val_data, EPOCHS, args.batch_size,
-                            plot=args.plot, load_model=args.load_model, optimizer_type=OPTIMIZER_TYPE,
-                            use_auc_loss=args.use_auc_loss)
+        model, tr_logs, val_logs = train_model(model, train_id, train_data, val_data, EPOCHS, args.batch_size,
+                                               plot=args.plot, load_model=args.load_model,
+                                               optimizer_type=OPTIMIZER_TYPE, use_auc_loss=args.use_auc_loss)
+        best_vals.append(min(val_logs['loss']))
 
+    logging.info("Average val loss: %s" % (sum(best_vals) / len(best_vals)))
     return model
 
 
@@ -170,10 +173,10 @@ def train(toxic_data):
     logging.info("Total Data: %s samples" % len(dataset))
     # Split the data
     train_data, val_data = dataset.validation_split(split=args.split, shuffle=True, seed=np.random.randint(2 ** 32))
-    model = train_model(model, TRAIN_ID, train_data, val_data, EPOCHS, args.batch_size,
-                        plot=args.plot, load_model=args.load_model, optimizer_type=OPTIMIZER_TYPE,
-                        use_auc_loss=args.use_auc_loss)
-
+    model, tr_logs, val_logs = train_model(model, TRAIN_ID, train_data, val_data, EPOCHS, args.batch_size,
+                                           plot=args.plot, load_model=args.load_model, optimizer_type=OPTIMIZER_TYPE,
+                                           use_auc_loss=args.use_auc_loss)
+    logging.info("Best Val Loss %s" % min(val_logs['loss']))
     return model
 
 

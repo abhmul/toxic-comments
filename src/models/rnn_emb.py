@@ -20,7 +20,7 @@ class RNNEmb(AEmbeddingModel):
 
     def __init__(self, embeddings_name, rnn_layers, fc_layers, pool, resample=False,
                  trainable=False, vocab_size=None, num_features=None, numpy_embeddings=False,
-                 legacy=False):
+                 legacy=False, use_pool=True):
         super(RNNEmb, self).__init__(embeddings_name, trainable=trainable, vocab_size=vocab_size,
                                      num_features=num_features, numpy_embeddings=numpy_embeddings)
 
@@ -37,6 +37,7 @@ class RNNEmb(AEmbeddingModel):
         # RNN Block
         self.rnn_layers = nn.ModuleList([rnn_func(**rnn_layer) for rnn_layer in rnn_layers])
         # Need to work around to get backward compatibility
+        self.use_pool = use_pool
         if isinstance(pool, dict):
             self.pool = build_pool(**pool)
             self.concat = None
@@ -102,7 +103,8 @@ class RNNEmb(AEmbeddingModel):
             x = rnn_layer(x)  # B x Li x H
 
         # Apply the mask
-        x = L.unpad_sequences(x, seq_lens)
+        if self.use_pool:
+            x = L.unpad_sequences(x, seq_lens)
         # Do the pooling
         if self.use_multi_pool:
             x = self.concat([pool_i(x) for pool_i in self.pool])
