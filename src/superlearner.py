@@ -10,6 +10,8 @@ import numpy as np
 from scipy.special import expit, logit
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss, accuracy_score
+from sklearn.multioutput import MultiOutputClassifier
+import xgboost as xgb
 
 import pyjet.backend as J
 from pyjet.models import SLModel
@@ -26,7 +28,11 @@ parser.add_argument('--seed', type=int, default=7, help="Seed fo the random numb
 parser.add_argument('--kfold', type=int, default=10, help="Runs kfold validation with the input number")
 parser.add_argument('--create_preds', action="store_true", help="Loads the models and predicts with them")
 parser.add_argument('--superlearn', action="store_true", help="Trains the superlearner")
-parser.add_argument('--use_sklearn', action="store_true", help="Uses Scikit-learn's logistic regression")
+
+model_group = parser.add_mutually_exclusive_group()
+model_group.add_argument('--use_sklearn', action="store_true", help="Uses Scikit-learn's logistic regression")
+model_group.add_argument('--use_xgboost', action="store_true", help="Uses XGBoost's gbt")
+
 parser.add_argument('--C', type=float, default=1e32, help="Regularization for scikit-learn")
 parser.add_argument('--penalty', type=str, default='l2', help="Regularization for scikit-learn")
 
@@ -189,6 +195,17 @@ def load_predictions(model_name, pred_savedir, pred_Y=None):
     return pred_X, pred_Y
 
 
+def train_superlearner_xgboost(pred_X, pred_Y, params):
+    num_base_learners = pred_X.shape[1]
+    # Flatten pred_X
+    pred_X = pred_X.reshape((pred_X.shape[0], -1))
+    gbm = xgb.XGBClassifier(**params)
+    # multi-ouput classifier
+    classifier = MultiOutputClassifier(gbm, n_jobs=-1)
+    classifier.fit(pred_X, pred_Y)
+    return classifier
+
+
 def train_superlearner(pred_X, pred_Y):
     # Now train 6 dense layers
     num_base_learners = pred_X.shape[1]
@@ -261,6 +278,28 @@ def ensemble_submissions(submission_fnames, weights, mus=None, sigmas=None):
     return ids, combined
 
 
+def ensemble_submissions2(submission_fnames, level2_model: MultiOutputClassifier):
+    assert len(submission_fnames) > 0, "Must provide at least one submission to ensemble."
+    # Get the id column of the submissions
+    ids = pd.read_csv(submission_fnames[0])['id'].values
+    # Read in all the submission values
+    submissions = [pd.read_csv(sub_fname)[LABEL_NAMES].values for sub_fname in submission_fnames]
+    # fix any sybmissions not on logit scale
+    for j, sub in enumerate(submissions):
+        if np.all((0 <= sub) & (sub <= 1.)):
+            logging.info("Applying logit to submission %s" % submission_fnames[j])
+            submissions[j] = logit(sub)
+
+    test_X = np.stack(submissions, axis=1)
+    test_X = test_X.reshape((test_X.shape[0], -1))
+    test_preds = level2_model.predict_proba(test_X)
+    logging.info("Output Test preds of shape: {} X {}".format(len(test_preds), test_preds[0].shape))
+    test_preds = np.stack(test_preds, axis=-1)
+    logging.info("Stacked Test preds of shape: {}".format(test_preds.shape))
+
+    return ids, test_preds
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
     SEED = args.seed
@@ -279,6 +318,9 @@ if __name__ == "__main__":
             logging.info("Training superlearner with scikit-learn")
             weights, mus, sigmas = train_superlearner_sklearn(pred_x, pred_y, reg_type=args.penalty, C=args.C)
             mus, sigmas = None, None
+        elif args.use_xgboost:
+            logging.info("Training superlearner with xgboost")
+            gbm = train_superlearner_xgboost(pred_x, pred_y, ensemble_config['params'])
         else:
             weights = train_superlearner(pred_x, pred_y)
             mus, sigmas = None, None
@@ -286,7 +328,10 @@ if __name__ == "__main__":
         # Run the ensembling
         submission_fnames = [os.path.join("../submissions/", fname + ".csv") for fname in ensemble_config["files"]]
         logging.info("Using submission_fnames: " + str(submission_fnames))
-        test_ids, combined_preds = ensemble_submissions(submission_fnames, weights, mus, sigmas)
+        if args.use_xgboost:
+            test_ids, combined_preds = ensemble_submissions2(submission_fnames, gbm)
+        else:
+            test_ids, combined_preds = ensemble_submissions(submission_fnames, weights, mus, sigmas)
         logging.info("Combined preds shape: {}".format(combined_preds.shape))
         ToxicData.save_submission(os.path.join("../submissions/", "superlearner_" + args.ensemble_id + ".csv"),
                                   test_ids, combined_preds)
