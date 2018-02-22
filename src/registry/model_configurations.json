@@ -75,6 +75,28 @@
         {"input_size": 32, "output_size": 6, "activation": "linear"}
       ]
     },
+    "7-fasttext": {
+      "embeddings_name": "fasttext_aug_full",
+      "rnn_layers": [{"input_size": 300, "output_size": 128, "rnn_type": "lstm", "input_dropout": 0.0, "dropout": 0.3,
+          "bidirectional": true, "num_layers": 2, "return_sequences": true}],
+      "pool": {"name": "seq-global-maxpool"},
+      "fc_layers": [
+        {"input_size": 128, "output_size": 32, "activation": "relu", "batchnorm": true},
+        {"input_size": 32, "output_size": 6, "activation": "linear"}
+      ],
+      "numpy_embeddings": true
+    },
+    "8-fasttext": {
+      "embeddings_name": "fasttext_aug_full",
+      "rnn_layers": [{"input_size": 300, "output_size": 256, "rnn_type": "lstm", "input_dropout": 0.0, "dropout": 0.3,
+          "bidirectional": true, "num_layers": 3, "return_sequences": true}],
+      "pool": {"name": "seq-global-maxpool"},
+      "fc_layers": [
+        {"input_size": 256, "output_size": 64, "activation": "relu", "batchnorm": true},
+        {"input_size": 64, "output_size": 6, "activation": "linear"}
+      ],
+      "numpy_embeddings": true
+    },
     "0-combined": {
       "embeddings_name": "combined_aug",
       "rnn_layers": [{"input_size": 900, "output_size": 128, "rnn_type": "gru", "input_dropout": 0.0, "dropout": 0.3,
@@ -156,6 +178,16 @@
         {"input_size": 128, "output_size": 32, "activation": "relu", "batchnorm": true, "dropout": 0.2},
         {"input_size": 32, "output_size": 6, "activation": "linear"}
       ]
+    },
+    "8-combined": {
+      "embeddings_name": "combined_aug_germ",
+      "rnn_layers": [{"input_size": 900, "output_size": 128, "rnn_type": "lstm", "input_dropout": 0.0, "dropout": 0.3,
+          "bidirectional": true, "num_layers": 2, "return_sequences": true}],
+      "pool": {"name": "context-att", "input_size": 128, "padded_input": false, "flatten_output": true, "batchnorm": true},
+      "fc_layers": [
+        {"input_size": 128, "output_size": 32, "activation": "relu", "batchnorm": true},
+        {"input_size": 32, "output_size": 6, "activation": "linear"}
+      ]
     }
 
   },
@@ -191,6 +223,39 @@
         {"input_size": 32, "output_size": 6, "activation": "linear"}
       ],
       "resample": true
+    }
+  },
+
+  "mha-rnn-emb": {
+    "0-fasttext": {
+      "embeddings_name": "fasttext_aug",
+      "rnn_layers": [{"input_size": 300, "output_size": 128, "rnn_type": "gru", "input_dropout": 0.0, "dropout": 0.1,
+          "bidirectional": true, "num_layers": 2, "return_sequences": true}],
+      "pool_type": {"name": "context-attention", "batchnorm": false, "dropout": 0.0, "activation": "tanh"},
+      "fc_layers": [
+        {"input_size": 128, "output_size": 32, "activation": "relu", "batchnorm": true},
+        {"input_size": 32, "output_size": 1, "activation": "linear"}
+      ]
+    },
+    "1-fasttext": {
+      "embeddings_name": "fasttext_aug",
+      "rnn_layers": [{"input_size": 300, "output_size": 128, "rnn_type": "gru", "input_dropout": 0.0, "dropout": 0.3,
+          "bidirectional": true, "num_layers": 2, "return_sequences": true}],
+      "pool_type": {"name": "context-maxpool", "batchnorm": true, "dropout": 0.0, "activation": "linear"},
+      "fc_layers": [
+        {"input_size": 128, "output_size": 64, "activation": "relu", "batchnorm": true, "dropout": 0.5},
+        {"input_size": 64, "output_size": 1, "activation": "linear"}
+      ]
+    },
+    "2-fasttext": {
+      "embeddings_name": "fasttext_aug",
+      "rnn_layers": [{"input_size": 300, "output_size": 128, "rnn_type": "gru", "input_dropout": 0.0, "dropout": 0.3,
+          "bidirectional": true, "num_layers": 2, "return_sequences": true}],
+      "pool_type": {"name": "context-attention", "batchnorm": false, "dropout": 0.5, "activation": "relu"},
+      "fc_layers": [
+        {"input_size": 128, "output_size": 64, "activation": "relu", "batchnorm": true, "dropout": 0.5},
+        {"input_size": 64, "output_size": 1, "activation": "linear"}
+      ]
     }
   }
 }

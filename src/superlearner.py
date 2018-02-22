@@ -27,6 +27,8 @@ parser.add_argument('--kfold', type=int, default=10, help="Runs kfold validation
 parser.add_argument('--create_preds', action="store_true", help="Loads the models and predicts with them")
 parser.add_argument('--superlearn', action="store_true", help="Trains the superlearner")
 parser.add_argument('--use_sklearn', action="store_true", help="Uses Scikit-learn's logistic regression")
+parser.add_argument('--C', type=float, default=1e32, help="Regularization for scikit-learn")
+parser.add_argument('--penalty', type=str, default='l2', help="Regularization for scikit-learn")
 
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -209,15 +211,21 @@ def train_superlearner(pred_X, pred_Y):
     return weights
 
 
-def train_superlearner_sklearn(pred_X, pred_Y):
+def train_superlearner_sklearn(pred_X, pred_Y, reg_type='l2', C=1e32):
     # Now train 6 dense layers
     num_base_learners = pred_X.shape[1]
     weights = np.zeros((num_base_learners, len(LABEL_NAMES)))
+    mus = np.zeros(len(LABEL_NAMES))
+    sigmas = np.ones(len(LABEL_NAMES))
     for i, label in enumerate(LABEL_NAMES):
         logging.info("Training logistic regression for label %s" % label)
         X = pred_X[:, :, i]
+        mus[i] = np.average(X)
+        sigmas[i] = np.std(X)
+        # X = X - mus[i]
+        # X = X / (sigmas[i] + 1e-9)
         Y = pred_Y[:, i]
-        logistic_reg = LogisticRegression(C=1e32, fit_intercept=False, max_iter=100000)
+        logistic_reg = LogisticRegression(C=C, penalty=reg_type, fit_intercept=False, max_iter=100000)
         logistic_reg.fit(X, Y)
         # For scoring
         loss = log_loss(Y, logistic_reg.predict_proba(X))
@@ -227,10 +235,10 @@ def train_superlearner_sklearn(pred_X, pred_Y):
         weight = logistic_reg.coef_
         weights[:, i] = weight.flatten()
         logging.info("Trained weights: {}".format(weights[:, i]))
-    return weights
+    return weights, mus, sigmas
 
 
-def ensemble_submissions(submission_fnames, weights):
+def ensemble_submissions(submission_fnames, weights, mus=None, sigmas=None):
     assert len(submission_fnames) > 0, "Must provide at least one submission to ensemble."
     # Check that we have a weight for each submission
     assert len(submission_fnames) == len(weights), "Number of submissions and weights must match."
@@ -244,6 +252,10 @@ def ensemble_submissions(submission_fnames, weights):
         if np.all((0 <= sub) & (sub <= 1.)):
             logging.info("Applying logit to submission %s" % submission_fnames[j])
             sub = logit(sub)
+        if mus is not None and sigmas is not None:
+            logging.info("Standardizing with mean %s and std %s" % (mus, sigmas))
+            sub = sub - mus[np.newaxis]
+            sub = sub / (sigmas[np.newaxis] + 1e-9)
         combined = combined + weights[j][np.newaxis] * sub
     # combined = expit(combined)
     return ids, combined
@@ -265,14 +277,16 @@ if __name__ == "__main__":
     if args.superlearn:
         if args.use_sklearn:
             logging.info("Training superlearner with scikit-learn")
-            weights = train_superlearner_sklearn(pred_x, pred_y)
+            weights, mus, sigmas = train_superlearner_sklearn(pred_x, pred_y, reg_type=args.penalty, C=args.C)
+            mus, sigmas = None, None
         else:
             weights = train_superlearner(pred_x, pred_y)
+            mus, sigmas = None, None
 
         # Run the ensembling
         submission_fnames = [os.path.join("../submissions/", fname + ".csv") for fname in ensemble_config["files"]]
         logging.info("Using submission_fnames: " + str(submission_fnames))
-        test_ids, combined_preds = ensemble_submissions(submission_fnames, weights)
+        test_ids, combined_preds = ensemble_submissions(submission_fnames, weights, mus, sigmas)
         logging.info("Combined preds shape: {}".format(combined_preds.shape))
         ToxicData.save_submission(os.path.join("../submissions/", "superlearner_" + args.ensemble_id + ".csv"),
                                   test_ids, combined_preds)

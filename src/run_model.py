@@ -113,7 +113,11 @@ def train_model(model, train_id, train_data, val_data, epochs, batch_size,
         logging.info("Using rmsprop")
         optimizer = optim.RMSprop(model.trainable_params(sgd=False))
     elif optimizer_type == "adam":
-        optimizer = optim.Adam(model.trainable_params(sgd=False))
+        if args.load_model:
+            # Use a smaller learning rate if we're loading a pretrained model
+            optimizer = optim.Adam(model.trainable_params(sgd=False), lr=1e-4)
+        else:
+            optimizer = optim.Adam(model.trainable_params(sgd=False))
     else:
         raise NotImplementedError("Optimizer Type %s" % optimizer_type)
 
