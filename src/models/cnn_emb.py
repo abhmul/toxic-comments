@@ -1,105 +1,37 @@
 import torch
-
-import logging
-from functools import partial
-
 import numpy as np
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.autograd import Variable
 
 import pyjet.backend as J
 import pyjet.layers as layers
 
 from models.abstract_model import AEmbeddingModel
-from layers import build_layer, build_pyjet_layer
-import layers.functions as L
-from layers.core import Conv1d, FullyConnected
+from layers import build_pyjet_layer
+import pyjet.layers.functions as L
+from pyjet.layers import Conv1D, FullyConnected, Identity, SequenceConv1D
 from registry import registry
 
 
 class CNNEmb(AEmbeddingModel):
 
-    def __init__(self, embeddings_name, conv_layers, fc_layers, pool, trainable=False, vocab_size=None, num_features=None):
+    def __init__(self, embeddings_name, layers, fc_layers, pool, trainable=False, vocab_size=None, num_features=None):
         super(CNNEmb, self).__init__(embeddings_name, trainable=trainable, vocab_size=vocab_size, num_features=num_features)
 
-        self.conv_layers = nn.ModuleList([Conv1d(**conv_layer) for conv_layer in conv_layers])
-        self.fc_layers = nn.ModuleList([FullyConnected(**fc_layer) for fc_layer in fc_layers])
-        self.pool = build_layer(**pool)
-        self.min_len = 5
+        # Build the conv layers
+        self.conv_layers = nn.Sequential()
+        for i, layer in enumerate(layers):
+            self.conv_layers.add_module(name=layer["name"] + str(i), module=build_pyjet_layer(**layer))
 
-    def calc_downsize(self, input_size):
-        output_size = input_size
-        for conv_layer in self.conv_layers:
-            output_size = conv_layer.calc_output_size(output_size)
-        return input_size - output_size
-
-    def cast_input_to_torch(self, x, volatile=False):
-        # Remove any missing words
-        x = [np.array([word for word in sample if word not in self.missing]) for sample in x]
-        # If a sample is too short extend it
-        x = [L.pad_numpy_to_length(sample, length=self.min_len+self.calc_downsize(len(sample))) for sample
-             in x]
-        # Transpose to get features x length
-        return [self.embeddings(Variable(J.from_numpy(sample).long(), volatile=volatile)) for sample in x]
-
-    def cast_target_to_torch(self, y, volatile=False):
-        return Variable(J.from_numpy(y).float(), volatile=volatile)
-
-    def forward(self, x):
-        for conv_layer in self.conv_layers:
-            x = conv_layer(x)
-        x = self.pool(x)
-        x = L.flatten(x)  # B x F*k
-
-        # Run the fc layer if we have one
-        for fc_layer in self.fc_layers:
-            x = fc_layer(x)
-        self.loss_in = x
-        return F.sigmoid(self.loss_in)
-
-
-class ResidualBlock(nn.Module):
-
-    def __init__(self, *block_layers):
-        super(ResidualBlock, self).__init__()
-        self.block = nn.Sequential(*block_layers)
-        if block_layers[0].input_size != block_layers[-1].output_size:
-            self.shortcut = layers.Conv1D(block_layers[0].input_size, block_layers[-1].output_size, 1, )
-
-
-class DPCNN(AEmbeddingModel):
-
-    def __init__(self, embeddings_name, conv_layers, fc_layers, pool, global_pool, block_size=2,
-                 trainable=False, vocab_size=None, num_features=None, numpy_embeddings=False):
-        super(DPCNN, self).__init__(embeddings_name, trainable=trainable, vocab_size=vocab_size,
-                                    num_features=num_features, numpy_embeddings=numpy_embeddings)
-
-        self.conv_layers = nn.ModuleList([layers.Conv1D(**conv_layer) for conv_layer in conv_layers])
-        if self.num_features == self.conv_layers[block_size-1].output_size:
-            self.shortcut = lambda x: x
-        else:
-            self.shortcut = nn.Conv1d(self.num_features, self.conv_layers[1].output_size, 1)
+        # Build the FC layers
+        self.fc_layers = nn.Sequential(*[FullyConnected(**fc_layer) for fc_layer in fc_layers])
+        # Build the pooling layer
         self.pool = build_pyjet_layer(**pool)
-        self.fc_layers = nn.ModuleList([layers.FullyConnected(**fc_layer) for fc_layer in fc_layers])
-        self.global_pool = build_pyjet_layer(**global_pool)
+        self.min_len = 1 if "k" not in pool else pool["k"]
 
-        self.block_size = block_size
-        self.min_len = 1
-        self.min_input_len = 2**(len(self.conv_layers) // block_size - 1)
-        # output_len = 0
-        # while output_len < self.min_len:
-        #     self.min_input_len += 1
-        #     output_len = self.calc_output_size(self.min_input_len)
-        logging.info("BLOCK SIZE %s" % self.block_size)
-        logging.info("MINIMUM INPUT LEN: %s" % self.min_input_len)
-
-    def calc_output_size(self, input_size):
-        output_size = input_size
-        for i, conv_layer in enumerate(self.conv_layers):
-            output_size = conv_layer.calc_output_size(output_size)
-            if i and (i + 1) % self.block_size == 0 and i != len(self.conv_layers) - 1:
-                output_size = self.pool.calc_output_size(output_size)
+    def calc_input_size(self, output_size):
+        for layer in reversed(self.conv_layers):
+            output_size = layer.calc_input_size(output_size)
         return output_size
 
     def cast_input_to_torch(self, x, volatile=False):
@@ -107,7 +39,7 @@ class DPCNN(AEmbeddingModel):
         x = [np.array([word for word in sample if word not in self.missing]) for sample in x]
         # Get the maximum length of the batch to not be degenerate
         max_len = max(len(seq) for seq in x)
-        max_len = max(max_len, self.min_input_len)
+        max_len = max(max_len, self.calc_input_size(self.min_len))
         x = np.array([L.pad_numpy_to_length(sample, length=max_len) for sample in x], dtype=int)
         return self.embeddings(Variable(J.from_numpy(x).long(), volatile=volatile))
 
@@ -115,26 +47,121 @@ class DPCNN(AEmbeddingModel):
         return Variable(J.from_numpy(y).float(), volatile=volatile)
 
     def forward(self, x):
-        x = x.transpose(1, 2).contiguous()
-        residual = self.shortcut(x)
-        for i, conv_layer in enumerate(self.conv_layers):
-            x = conv_layer(x)
-            if (i+1) % self.block_size == 0:
-                assert x.size() == residual.size()
-                x = residual + x
-                if i != len(self.conv_layers) - 1:
-                    x = self.pool(x)
-                    residual = x
-        x = x.transpose(1, 2).contiguous()
-        x = self.global_pool(x)
-        x = L.flatten(x)  # B x F
+        x = self.conv_layers(x)
+        x = self.pool(x)
+        x = L.flatten(x)  # B x F*k
 
         # Run the fc layer if we have one
-        for fc_layer in self.fc_layers:
-            x = fc_layer(x)
+        x = self.fc_layers(x)
         self.loss_in = x
-        return F.sigmoid(self.loss_in)
+        return self.loss_in
 
+    def reset_parameters(self):
+        for layer in self.conv_layers:
+            layer.reset_parameters()
+        self.pool.reset_parameters()
+        for layer in self.fc_layers:
+            layer.reset_parameters()
+
+
+class ResidualBlock(nn.Module):
+
+    def __init__(self, residual_layers, nonresidual_layers):
+        super(ResidualBlock, self).__init__()
+        self.residual = nn.Sequential()
+        # Add the residual layers
+        for i, layer in enumerate(residual_layers):
+            self.residual.add_module(name=layer["name"] + str(i), module=build_pyjet_layer(**layer))
+        # Add the nonresidual layer last
+        self.nonresidual = nn.Sequential()
+        # Add the residual layers
+        for i, layer in enumerate(nonresidual_layers):
+            self.nonresidual.add_module(name=layer["name"] + str(i), module=build_pyjet_layer(**layer))
+
+        if len(self.residual) and self.residual[0].input_size != self.residual[-1].output_size:
+            self.shortcut = SequenceConv1D(self.residual[0].input_size, self.residual[-1].output_size, 1)
+        else:
+            self.shortcut = Identity
+
+    def calc_input_size(self, output_size):
+        for layer in reversed(self.residual):
+            output_size = layer.calc_input_size(output_size)
+        for layer in reversed(self.nonresidual):
+            output_size = layer.calc_input_size(output_size)
+        return output_size
+
+    def forward(self, x):
+        input_x = x
+        if len(self.residual):
+            x = self.residual(x)
+        x = [res + sample for res, sample in zip(self.shortcut(input_x), x)]
+        if len(self.nonresidual):
+            x = self.nonresidual(x)
+        return x
+
+    def reset_parameters(self):
+        for layer in self.residual:
+            layer.reset_parameters()
+        for layer in self.nonresidual:
+            layer.reset_parameters()
+
+
+class DPCNN(AEmbeddingModel):
+
+    def __init__(self, embeddings_name, blocks, fc_layers, pool,
+                 trainable=False, vocab_size=None, num_features=None, numpy_embeddings=False,
+                 char=False):
+        super(DPCNN, self).__init__(embeddings_name, trainable=trainable, vocab_size=vocab_size,
+                                    num_features=num_features, numpy_embeddings=numpy_embeddings)
+
+        self.blocks = nn.Sequential(*[ResidualBlock(**block) for block in blocks])
+        self.fc_layers = nn.Sequential(*[layers.FullyConnected(**fc_layer) for fc_layer in fc_layers])
+        self.pool = build_pyjet_layer(**pool)
+        self.char = char
+        self.min_len = 5
+        self.min_input_size = self.calc_input_size(self.min_len)
+
+    def calc_input_size(self, output_size):
+        for block in self.blocks:
+            output_size = block.calc_input_size(output_size)
+        return output_size
+
+    def cast_input_to_torch(self, x, volatile=False):
+        if self.char:
+            x = [np.array(sample[:1024]) for sample in x]
+
+        # Remove any missing words
+        else:
+            x = [np.array([word for word in sample if word not in self.missing]) for sample in x]
+        # Get the maximum length of the batch to not be degenerate
+        # max_len = max(len(seq) for seq in x)
+        # max_len = max(max_len, self.calc_input_size(self.min_len))
+        x = [L.pad_numpy_to_length(sample, length=self.min_input_size) for sample in x]
+        # return self.embeddings(Variable(J.from_numpy(x).long(), volatile=volatile))
+
+        return [self.embeddings(Variable(J.from_numpy(sample).long(), volatile=volatile)) for sample in x]
+
+    def cast_target_to_torch(self, y, volatile=False):
+        return Variable(J.from_numpy(y).float(), volatile=volatile)
+
+    def forward(self, x):
+        x = self.blocks(x)
+        # print(len(x), x[0].size())
+        x = self.pool(x)
+        # print(x.size())
+        x = L.flatten(x)  # B x F*k
+        # print(x.size())
+        # Run the fc layer if we have one
+        x = self.fc_layers(x)
+        self.loss_in = x
+        return self.loss_in
+
+    def reset_parameters(self):
+        for block in self.blocks:
+            block.reset_parameters()
+        self.pool.reset_parameters()
+        for layer in self.fc_layers:
+            layer.reset_parameters()
 
 
 registry.register_model("cnn-emb", CNNEmb)

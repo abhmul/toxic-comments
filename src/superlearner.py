@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import numpy as np
 from scipy.special import expit, logit
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import log_loss, accuracy_score
+from sklearn.metrics import log_loss, accuracy_score, roc_auc_score
 from sklearn.multioutput import MultiOutputClassifier
 import xgboost as xgb
 
@@ -197,13 +197,30 @@ def load_predictions(model_name, pred_savedir, pred_Y=None):
 
 def train_superlearner_xgboost(pred_X, pred_Y, params):
     num_base_learners = pred_X.shape[1]
-    # Flatten pred_X
-    pred_X = pred_X.reshape((pred_X.shape[0], -1))
-    gbm = xgb.XGBClassifier(**params)
-    # multi-ouput classifier
-    classifier = MultiOutputClassifier(gbm, n_jobs=-1)
-    classifier.fit(pred_X, pred_Y)
-    return classifier
+    models = []
+    losses = []
+    accs = []
+    aucs = []
+    for i, label in enumerate(LABEL_NAMES):
+        logging.info("Training XGB for label %s" % label)
+        X = pred_X[:, :, i]
+        Y = pred_Y[:, i]
+        scale_pos_weight = np.count_nonzero(1 - Y) / np.count_nonzero(Y)
+        gbm = xgb.XGBClassifier(scale_pos_weight=scale_pos_weight, **params)
+        gbm.fit(X, Y, eval_metric='auc')
+        # For scoring
+        logits = gbm.predict_proba(X)[:, 1]
+        loss = log_loss(Y, expit(logits))
+        acc = accuracy_score(Y, gbm.predict(X))
+        auc = roc_auc_score(Y, logits)
+        logging.info("Final Loss: %s" % loss)
+        logging.info("Final Accuracy: %s" % acc)
+        logging.info("Final AUC: %s" % auc)
+        losses.append(loss)
+        accs.append(acc)
+        aucs.append(auc)
+        models.append(gbm)
+    return models
 
 
 def train_superlearner(pred_X, pred_Y):
@@ -278,7 +295,7 @@ def ensemble_submissions(submission_fnames, weights, mus=None, sigmas=None):
     return ids, combined
 
 
-def ensemble_submissions2(submission_fnames, level2_model: MultiOutputClassifier):
+def ensemble_submissions2(submission_fnames, level2_models):
     assert len(submission_fnames) > 0, "Must provide at least one submission to ensemble."
     # Get the id column of the submissions
     ids = pd.read_csv(submission_fnames[0])['id'].values
@@ -288,13 +305,15 @@ def ensemble_submissions2(submission_fnames, level2_model: MultiOutputClassifier
     for j, sub in enumerate(submissions):
         if np.all((0 <= sub) & (sub <= 1.)):
             logging.info("Applying logit to submission %s" % submission_fnames[j])
-            submissions[j] = logit(sub)
+            sub = logit(sub)
 
     test_X = np.stack(submissions, axis=1)
-    test_X = test_X.reshape((test_X.shape[0], -1))
-    test_preds = level2_model.predict_proba(test_X)
-    logging.info("Output Test preds of shape: {} X {}".format(len(test_preds), test_preds[0].shape))
-    test_preds = np.stack(test_preds, axis=-1)
+    test_preds = np.zeros(submissions[0].shape)
+    for i, label in enumerate(LABEL_NAMES):
+        logging.info("Testing XGB for label %s" % label)
+        X = test_X[:, :, i]
+        logits = level2_models[i].predict_proba(X)[:, 1]
+        test_preds[:, i] = logits
     logging.info("Stacked Test preds of shape: {}".format(test_preds.shape))
 
     return ids, test_preds

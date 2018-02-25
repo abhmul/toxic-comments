@@ -29,8 +29,10 @@ pyjet_layer_types = {
     "lstm": JLayers.LSTM,
     # Convolutional
     "conv": JLayers.Conv1D,
+    "seq-conv": JLayers.SequenceConv1D,
     # Pooling
     "maxpool": JLayers.MaxPooling1D,
+    "seq-maxpool": JLayers.SequenceMaxPooling1D,
     "avgpool": JLayers.AveragePooling1D,
     "global-maxpool": JLayers.GlobalMaxPooling1D,
     "seq-global-maxpool": JLayers.SequenceGlobalMaxPooling1D,

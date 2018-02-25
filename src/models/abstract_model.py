@@ -11,6 +11,8 @@ import pyjet.backend as J
 
 
 def fix_embeddings_name(embeddings_name):
+    if not embeddings_name:
+        return ""
     return os.path.join("..", "embeddings", embeddings_name + "/")
 
 
@@ -40,7 +42,7 @@ class AEmbeddingModel(SLModel):
         self.embeddings, self.missing = self.load_embeddings_path(self.embeddings_path, trainable=trainable,
                                                                   vocab_size=vocab_size, num_features=num_features,
                                                                   numpy_embeddings=numpy_embeddings)
-        self.sgd_params = {id(param) for param in self.embeddings.parameters()}
+        self.sgd_params = {}
         self.num_features = self.embeddings.embedding_dim
         self.vocab_size = self.embeddings.num_embeddings
 
@@ -51,12 +53,13 @@ class AEmbeddingModel(SLModel):
         if embeddings_path:
             np_embeddings = np.load(os.path.join(embeddings_path, "embeddings.npy"))
         else:
-            assert vocab_size is not None or num_features is not None
+            assert vocab_size is not None and num_features is not None
             np_embeddings = np.zeros((vocab_size + 1, num_features))
+            trainable = True
 
         # Create the embeddings layer
         if not numpy_embeddings:
-            embeddings = nn.Embedding(*np_embeddings.shape, padding_idx=0, scale_grad_by_freq=False, sparse=True)
+            embeddings = nn.Embedding(*np_embeddings.shape, padding_idx=0, scale_grad_by_freq=False, sparse=not trainable)
             embeddings.weight.data.copy_(J.from_numpy(np_embeddings))
             print("Trainable Embeddings: ", trainable)
             embeddings.weight.requires_grad = trainable

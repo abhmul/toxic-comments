@@ -10,7 +10,7 @@ LABEL_NAMES = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity
 
 class ToxicData(object):
 
-    def __init__(self, train_path, test_path, word_index_path="", augmented_path="", original_prob=None):
+    def __init__(self, train_path, test_path, word_index_path="", augmented_path="", original_prob=None, fixed_len=None):
         self.train_path = train_path
         self.test_path = test_path
         self.augmented = bool(augmented_path)
@@ -19,6 +19,10 @@ class ToxicData(object):
         if self.augmented:
             self.augmented_paths = glob.glob(augmented_path)
         self.original_prob = original_prob
+        if fixed_len is None or fixed_len < 0:
+            self.fixed_len = None
+        else:
+            self.fixed_len = fixed_len
 
 
     @staticmethod
@@ -45,7 +49,8 @@ class ToxicData(object):
                 logging.info('Loading augmented dataset from %s' % aug_path)
                 _, aug_dataset = self.load_supervised(np.load(aug_path))
                 aug_datasets.append(aug_dataset)
-            return ids, MultiNpDatasetAugmenter(original_dataset, *aug_datasets, use_original_prob=self.original_prob)
+            return ids, MultiNpDatasetAugmenter(original_dataset, *aug_datasets, use_original_prob=self.original_prob,
+                                                fixed_len=self.fixed_len)
         return ids, original_dataset
 
     def load_train(self, mode="sup"):
@@ -69,7 +74,7 @@ class ToxicData(object):
 
 class MultiNpDatasetAugmenter(Dataset):
 
-    def __init__(self, original_dataset: NpDataset, *datasets: NpDataset, use_original_prob=None):
+    def __init__(self, original_dataset: NpDataset, *datasets: NpDataset, use_original_prob=None, fixed_len=None):
         super().__init__()
         assert all(len(dataset) == len(original_dataset) for dataset in datasets), "Datasets must be of same length"
         assert all(dataset.output_labels == original_dataset.output_labels for dataset in
@@ -79,6 +84,8 @@ class MultiNpDatasetAugmenter(Dataset):
         self.n_datasets = len(self.datasets)
         self.output_labels = original_dataset.output_labels
         self.use_original_prob = use_original_prob
+        self.fixed_len = fixed_len
+        logging.info("Using a fixed len of %s" % self.fixed_len)
         self.__length = len(original_dataset)
         self.__dataset_inds = np.arange(self.n_datasets, dtype=int)
         if self.use_original_prob is None:
@@ -117,6 +124,18 @@ class MultiNpDatasetAugmenter(Dataset):
             if x is None:
                 x = np.empty((len(batch_indicies),) + xsub.shape[1:], dtype=xsub.dtype)
             x[is_dataset] = xsub
+
+        # Do fixed length augmentation if so
+        if self.fixed_len is not None:
+            x_new = np.empty((len(x), self.fixed_len), dtype=int)
+            for i, sample in enumerate(x):
+                end_start = len(sample) - self.fixed_len + 1
+                if end_start <= 1:
+                    x_new[i, :len(sample)] = np.array(sample)
+                start = np.random.randint(0, end_start)
+                x_new[i] = np.array(sample[start: start + self.fixed_len])
+            x = x_new
+
         # Yield the final output
         if self.output_labels:
             return x, y

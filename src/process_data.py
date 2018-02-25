@@ -32,10 +32,11 @@ parser.add_argument('--max_nb_words', type=int, default=100000, help='Maximum nu
 parser.add_argument('--nltk_tokenize', action='store_true', help="Uses the nltk punkt word tokenizer.")
 parser.add_argument('--use_sklearn', action='store_true', help="Uses sklearn tokenizer and doesn't clean.")
 parser.add_argument('--use_augmented', action='store_true', help="Processes additional augmented datasets")
+parser.add_argument('--char_level', action='store_true', help="Processes the dataset on the character level")
 
 LABEL_NAMES = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
 # Regex to remove all Non-Alpha Numeric and space
-SPECIAL_CHARS = re.compile(r'([^a-z\d ])', re.IGNORECASE)
+SPECIAL_CHARS = re.compile(r'([^a-z\d!?.])', re.IGNORECASE)
 # regex to replace all numerics
 NUMBERS = re.compile(r'\d+', re.IGNORECASE)
 
@@ -69,7 +70,7 @@ def load_text(text_name, path_to_data="../input"):
 
 
 def clean_text(text, remove_stopwords=False, substitute_special_chars=True, remove_special_chars=False,
-               replace_numbers=False, stem_words=False):
+               replace_numbers=False, stem_words=False, char_level=False):
     # Clean the text, with the option to remove stopwords and to stem words.
     # Convert words to lower case
     text = text.lower()
@@ -82,7 +83,10 @@ def clean_text(text, remove_stopwords=False, substitute_special_chars=True, remo
 
     # Substitute special chars
     if substitute_special_chars:
-        text = SPECIAL_CHARS.sub(r' \1 ', text)
+        if char_level:
+            text = SPECIAL_CHARS.sub('', text)
+        else:
+            text = SPECIAL_CHARS.sub(r' \1 ', text)
 
     # Remove Special Characters
     if remove_special_chars and not substitute_special_chars:
@@ -107,10 +111,13 @@ def clean(texts, clean_func):
     return [clean_func(text) for text in tqdm(texts)]
 
 
-def tokenize(texts, tokenize_func=None, max_nb_words=-1):
+def tokenize(texts, tokenize_func=None, max_nb_words=-1, char_level=False):
     if max_nb_words == -1:
         max_nb_words = None
-    tokenizer = Tokenizer(num_words=max_nb_words)
+    if char_level:
+        tokenizer = Tokenizer(num_words=max_nb_words, filters=" \1", char_level=True)
+    else:
+        tokenizer = Tokenizer(num_words=max_nb_words)
     # Split up each text
     # TODO For now using a tokenizer func is not suppoted
     if tokenize_func is not None:
@@ -119,21 +126,29 @@ def tokenize(texts, tokenize_func=None, max_nb_words=-1):
     # Fit the tokenizer
     logging.info("Fitting tokenizer...")
     tokenizer.fit_on_texts(texts)
-    logging.info("Found %s words in texts" % len(tokenizer.word_index))
+    logging.info("Found {} {} in texts".format(len(tokenizer.word_index), "chars" if char_level else "words"))
+    if char_level:
+        print(tokenizer.word_index)
     return tokenizer.word_index
 
+
+def create_text_sequence(comment, char_level=False):
+    if char_level:
+        return list(comment)
+    else:
+        return text_to_word_sequence(comment)
 
 def process_texts(train_name, test_name, *augmentation_names, path_to_data="../input/", save_dest="../processed_input/",
                   remove_stopwords=False, substitute_special_chars=True, remove_special_chars=False,
                   replace_numbers=False, stem_words=False, tokenize_func=None,
-                  max_nb_words=-1):
+                  max_nb_words=-1, char_level=False):
 
     # Initialize the cleaner
     logging.info("Loading and Cleaning the texts...")
     clean_func = partial(clean_text, remove_stopwords=remove_stopwords,
                          substitute_special_chars=substitute_special_chars,
                          remove_special_chars=remove_special_chars,
-                         replace_numbers=replace_numbers, stem_words=stem_words)
+                         replace_numbers=replace_numbers, stem_words=stem_words, char_level=char_level)
     logging.info("Initializing a cleaner with settings: \n%r" % clean_func)
 
     # Load the texts
@@ -143,7 +158,7 @@ def process_texts(train_name, test_name, *augmentation_names, path_to_data="../i
 
     # Tokenize the texts
     logging.info("Tokenizing the texts...")
-    word_index = tokenize(texts, tokenize_func=tokenize_func, max_nb_words=max_nb_words)
+    word_index = tokenize(texts, tokenize_func=tokenize_func, max_nb_words=max_nb_words, char_level=char_level)
     # Cleanup the loaded texts
     logging.info("Cleaning up the loaded texts")
     del texts
@@ -155,7 +170,7 @@ def process_texts(train_name, test_name, *augmentation_names, path_to_data="../i
     # Now reload the texts 1-by-1 to map them to their respective indicies
     logging.info("Mapping words to their respective indicies for augmentation texts...")
     for i, aug_name in enumerate(augmentation_names, start=1):
-        text = [text_to_word_sequence(comment) for comment in
+        text = [create_text_sequence(comment, char_level=char_level) for comment in
                 clean(load_text(aug_name, path_to_data=path_to_data), clean_func)]
         text = [[word_index[word] for word in comment] for comment in tqdm(text)]
         raw_name = os.path.splitext(aug_name)[0]
@@ -165,13 +180,13 @@ def process_texts(train_name, test_name, *augmentation_names, path_to_data="../i
         del text
     # Save the train and test texts now
     logging.info("Mapping and Saving train and test data...")
-    train_texts = [text_to_word_sequence(comment) for comment in clean(train_texts, clean_func)]
+    train_texts = [create_text_sequence(comment, char_level=char_level) for comment in clean(train_texts, clean_func)]
     train_texts = [[word_index[word] for word in comment] for comment in tqdm(train_texts)]
     save_text("train", train_ids, train_texts, labels=train_labels, save_dest=save_dest)
     del train_texts
     del train_ids
     del train_labels
-    test_texts = [text_to_word_sequence(comment) for comment in clean(test_texts, clean_func)]
+    test_texts = [create_text_sequence(comment, char_level=char_level) for comment in clean(test_texts, clean_func)]
     test_texts = [[word_index[word] for word in comment] for comment in tqdm(test_texts)]
     save_text("test", test_ids, test_texts, save_dest=save_dest)
     del test_ids
@@ -205,4 +220,4 @@ if __name__ == "__main__":
     process_texts("train.csv", "test.csv", *train_augmentation_names, path_to_data=args.data, save_dest=args.save,
                   remove_stopwords=args.remove_stopwords, substitute_special_chars=(not args.keep_special_chars),
                   replace_numbers=args.replace_numbers, stem_words=args.stem_words,
-                  tokenize_func=tokenize_function, max_nb_words=args.max_nb_words)
+                  tokenize_func=tokenize_function, max_nb_words=args.max_nb_words, char_level=args.char_level)

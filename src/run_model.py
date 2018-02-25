@@ -36,6 +36,7 @@ parser.add_argument('--use_rmsprop', action="store_true", help="Uses RMSProp ins
 parser.add_argument('--postprocessing', default="none", help="Type of postprocessing to use")
 parser.add_argument('--use_auc_loss', action="store_true", help="Uses auc loss instead of logloss")
 parser.add_argument('--num_completed', type=int, default=0, help="How many completed folds")
+parser.add_argument('--fixed_len', type=int, default=-1, help="Extract this length sequence from each sample")
 args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -106,9 +107,9 @@ def train_model(model, train_id, train_data, val_data, epochs, batch_size,
     # And the optimizer
     if optimizer_type == "sgd":
         logging.info("Using sgd")
-        optimizer = optim.SGD(model.trainable_params(sgd=False), lr=0.01, momentum=0.9)
+        optimizer = optim.SGD(model.trainable_params(sgd=False), lr=0.01, momentum=0.9, nesterov=True)
         # callbacks.append(LRScheduler(optimizer, lambda epoch: 0.01 if epoch < 6 else 0.001))
-        callbacks.append(ReduceLROnPlateau(optimizer, monitor='loss', monitor_val=True, patience=1, verbose=1))
+        callbacks.append(ReduceLROnPlateau(optimizer, monitor='loss', monitor_val=True, patience=2, verbose=1))
     elif optimizer_type == "rmsprop":
         logging.info("Using rmsprop")
         optimizer = optim.RMSprop(model.trainable_params(sgd=False))
@@ -224,7 +225,7 @@ if __name__ == "__main__":
 
     # Load the data
     toxic = ToxicData(train_path, test_path, dictionary_path, augmented_path=augmented_path,
-                      original_prob=args.original_prob)
+                      original_prob=args.original_prob, fixed_len=args.fixed_len)
 
     model = None
     if args.train:
