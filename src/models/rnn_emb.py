@@ -73,9 +73,6 @@ class RNNEmb(AEmbeddingModel):
         x = np.array([L.pad_numpy_to_length(sample, length=max(seq_lens)) for sample in x], dtype=int)
         return self.embeddings(Variable(J.from_numpy(x).long(), volatile=volatile)), seq_lens
 
-    def cast_target_to_torch(self, y, volatile=False):
-        return Variable(J.from_numpy(y).float(), volatile=volatile)
-
     def legacy_forward(self, x):
         # Apply the resampler if necessary
         if self.resample:

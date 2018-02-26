@@ -24,6 +24,7 @@ class CNNEmb(AEmbeddingModel):
         self.fc_layers = nn.ModuleList([FullyConnected(**fc_layer) for fc_layer in fc_layers])
         self.pool = MaskedLayer(build_pyjet_layer(**pool), mask_value='min')
         self.global_pool = MaskedLayer(build_pyjet_layer(**global_pool), mask_value='min')
+        self.min_len = 5
 
     def cast_input_to_torch(self, x, volatile=False):
         # Remove any missing words
@@ -73,20 +74,20 @@ class ResidualBlock(nn.Module):
             self.nonresidual.append(MaskedLayer(build_pyjet_layer(**layer),
                                                 mask_value=("min" if "max" in layer["name"] else 0.0)))
 
-        if len(self.residual) and self.residual[0].input_size != self.residual[-1].output_size:
-            self.shortcut = MaskedLayer(Conv1D(self.residual[0].input_size, self.residual[-1].output_size, 1))
+        if len(self.residual) and self.residual[0].layer.input_size != self.residual[-1].layer.output_size:
+            self.shortcut = MaskedLayer(Conv1D(self.residual[0].layer.input_size, self.residual[-1].layer.output_size, 1))
         else:
-            self.shortcut = MaskedInput()
+            self.shortcut = MaskedLayer()
 
     def calc_input_size(self, output_size):
         for layer in reversed(self.residual):
-            output_size = layer.calc_input_size(output_size)
+            output_size = layer.layer.calc_input_size(output_size)
         for layer in reversed(self.nonresidual):
-            output_size = layer.calc_input_size(output_size)
+            output_size = layer.layer.calc_input_size(output_size)
         return output_size
 
     def forward(self, x, seq_lens):
-        input_x = self.shortcut(x, seq_lens)
+        input_x, _ = self.shortcut(x, seq_lens)
         # Do the residual layers
         for res in self.residual:
             x, seq_lens = res(x, seq_lens)
@@ -142,7 +143,7 @@ class DPCNN(AEmbeddingModel):
         for block in self.blocks:
             x, seq_lens = block(x, seq_lens)
 
-        x, _ = self.pool(x, seq_lens)
+        x, _ = self.global_pool(x, seq_lens)
 
         x = L.flatten(x)  # B x F*k
         # Run the fc layer if we have one
@@ -154,7 +155,7 @@ class DPCNN(AEmbeddingModel):
     def reset_parameters(self):
         for block in self.blocks:
             block.reset_parameters()
-        self.pool.reset_parameters()
+        self.global_pool.reset_parameters()
         for layer in self.fc_layers:
             layer.reset_parameters()
 

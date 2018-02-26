@@ -76,6 +76,9 @@ class AEmbeddingModel(SLModel):
         print("Loaded", embeddings.num_embeddings, "embeddings and", len(missing), "missing words.")
         return embeddings, missing
 
+    def cast_target_to_torch(self, y, volatile=False):
+        return Variable(J.from_numpy(y).float(), volatile=volatile)
+
     def forward(self, *inputs, **kwargs):
         NotImplementedError()
 

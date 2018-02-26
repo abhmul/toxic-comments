@@ -37,6 +37,7 @@ parser.add_argument('--postprocessing', default="none", help="Type of postproces
 parser.add_argument('--use_auc_loss', action="store_true", help="Uses auc loss instead of logloss")
 parser.add_argument('--num_completed', type=int, default=0, help="How many completed folds")
 parser.add_argument('--fixed_len', type=int, default=-1, help="Extract this length sequence from each sample")
+parser.add_argument('--patience', type=int, default=2, help="Patience before lowering the learning rate")
 args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -82,7 +83,7 @@ def train_model(model, train_id, train_data, val_data, epochs, batch_size,
     logging.info("Train Data: %s samples" % len(train_data))
     logging.info("Val Data: %s samples" % len(val_data))
     traingen = DatasetGenerator(train_data, batch_size=batch_size, shuffle=True, seed=np.random.randint(2 ** 32))
-    valgen = DatasetGenerator(val_data, batch_size=batch_size, shuffle=True, seed=np.random.randint(2 ** 32))
+    valgen = DatasetGenerator(val_data, batch_size=batch_size, shuffle=False, seed=np.random.randint(2 ** 32))
 
     model_file, submission_file, log_file = create_filenames(train_id)
 
@@ -109,7 +110,7 @@ def train_model(model, train_id, train_data, val_data, epochs, batch_size,
         logging.info("Using sgd")
         optimizer = optim.SGD(model.trainable_params(sgd=False), lr=0.01, momentum=0.9, nesterov=True)
         # callbacks.append(LRScheduler(optimizer, lambda epoch: 0.01 if epoch < 6 else 0.001))
-        callbacks.append(ReduceLROnPlateau(optimizer, monitor='loss', monitor_val=True, patience=2, verbose=1))
+        callbacks.append(ReduceLROnPlateau(optimizer, monitor='loss', monitor_val=True, patience=args.patience, verbose=1))
     elif optimizer_type == "rmsprop":
         logging.info("Using rmsprop")
         optimizer = optim.RMSprop(model.trainable_params(sgd=False))

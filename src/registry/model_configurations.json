@@ -282,50 +282,39 @@
       "embeddings_name": "fasttext_aug",
       "blocks": [
         {"residual_layers": [
-          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu",
-            "batchnorm": true},
-          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu",
-            "batchnorm": true, "dropout": 0.1}],
+          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "linear"},
+          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "input_activation": "relu",
+            "input_batchnorm": true, "dropout": 0.1}],
           "nonresidual_layers": [
             {"name": "maxpool", "kernel_size": 3, "stride": 2}
           ]
         },
 
         {"residual_layers": [
-          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu",
-            "batchnorm": true},
-          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu",
-            "batchnorm": true, "dropout": 0.1}],
+          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "input_activation": "relu",
+            "input_batchnorm": true},
+          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "input_activation": "relu",
+            "input_batchnorm": true, "dropout": 0.1}],
           "nonresidual_layers": [
             {"name": "maxpool", "kernel_size": 3, "stride": 2}
           ]
         },
 
         {"residual_layers": [
-          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu",
-            "batchnorm": true},
-          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu",
-            "batchnorm": true, "dropout": 0.1}],
+          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "input_activation": "relu",
+            "input_batchnorm": true},
+          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "input_activation": "relu",
+            "input_batchnorm": true, "dropout": 0.1}],
           "nonresidual_layers": [
             {"name": "maxpool", "kernel_size": 3, "stride": 2}
           ]
         },
 
         {"residual_layers": [
-          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu",
-            "batchnorm": true},
-          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu",
-            "batchnorm": true, "dropout": 0.1}],
-          "nonresidual_layers": [
-            {"name": "maxpool", "kernel_size": 3, "stride": 2}
-          ]
-        },
-
-        {"residual_layers": [
-          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu",
-            "batchnorm": true},
-          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "activation": "relu",
-            "batchnorm": true, "dropout": 0.1}],
+          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "input_activation": "relu",
+            "input_batchnorm": true},
+          {"name": "conv", "input_size": 300, "output_size": 300, "kernel_size": 3, "input_activation": "relu",
+            "input_batchnorm": true, "dropout": 0.1}],
           "nonresidual_layers": [
             {"name": "maxpool", "kernel_size": 3, "stride": 2}
           ]
@@ -379,7 +368,7 @@
         }
       ],
 
-      "pool": {"name": "global-maxpool"},
+      "global_pool": {"name": "global-maxpool"},
       "fc_layers": [
         {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
       ]
