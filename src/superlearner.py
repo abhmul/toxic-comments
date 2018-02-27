@@ -203,16 +203,16 @@ def train_superlearner_xgboost(pred_X, pred_Y, params):
     aucs = []
     for i, label in enumerate(LABEL_NAMES):
         logging.info("Training XGB for label %s" % label)
-        X = pred_X[:, :, i]
+        X = expit(pred_X[:, :, i])
         Y = pred_Y[:, i]
         scale_pos_weight = np.count_nonzero(1 - Y) / np.count_nonzero(Y)
         gbm = xgb.XGBClassifier(scale_pos_weight=scale_pos_weight, **params)
         gbm.fit(X, Y, eval_metric='auc')
         # For scoring
-        logits = gbm.predict_proba(X)[:, 1]
-        loss = log_loss(Y, expit(logits))
+        probs = gbm.predict_proba(X)[:, 1]
+        loss = log_loss(Y, probs)
         acc = accuracy_score(Y, gbm.predict(X))
-        auc = roc_auc_score(Y, logits)
+        auc = roc_auc_score(Y, probs)
         logging.info("Final Loss: %s" % loss)
         logging.info("Final Accuracy: %s" % acc)
         logging.info("Final AUC: %s" % auc)
@@ -220,6 +220,9 @@ def train_superlearner_xgboost(pred_X, pred_Y, params):
         accs.append(acc)
         aucs.append(auc)
         models.append(gbm)
+    logging.info("AVG AUC: {}".format(np.mean(aucs)))
+    logging.info("AVG LOSS: {}".format(np.mean(losses)))
+    logging.info("AVG ACCURACY: {}".format(np.mean(accs)))
     return models
 
 
@@ -249,8 +252,12 @@ def train_superlearner_sklearn(pred_X, pred_Y, reg_type='l2', C=1e32):
     # Now train 6 dense layers
     num_base_learners = pred_X.shape[1]
     weights = np.zeros((num_base_learners, len(LABEL_NAMES)))
+    good_contrib = np.zeros(num_base_learners, dtype=bool)
     mus = np.zeros(len(LABEL_NAMES))
     sigmas = np.ones(len(LABEL_NAMES))
+    losses = []
+    accs = []
+    aucs = []
     for i, label in enumerate(LABEL_NAMES):
         logging.info("Training logistic regression for label %s" % label)
         X = pred_X[:, :, i]
@@ -262,13 +269,21 @@ def train_superlearner_sklearn(pred_X, pred_Y, reg_type='l2', C=1e32):
         logistic_reg = LogisticRegression(C=C, penalty=reg_type, fit_intercept=False, max_iter=100000)
         logistic_reg.fit(X, Y)
         # For scoring
-        loss = log_loss(Y, logistic_reg.predict_proba(X))
-        acc = accuracy_score(Y, logistic_reg.predict(X))
-        logging.info("Final Loss: %s" % loss)
-        logging.info("Final Accuracy: %s" % acc)
+        probs = logistic_reg.predict_proba(X)[:, 1]
+        losses.append(log_loss(Y, probs))
+        accs.append(accuracy_score(Y, logistic_reg.predict(X)))
+        aucs.append(roc_auc_score(Y, probs))
+        logging.info("Final Loss: %s" % losses[-1])
+        logging.info("Final Accuracy: %s" % accs[-1])
+        logging.info("Final AUC: %s" % aucs[-1])
         weight = logistic_reg.coef_
         weights[:, i] = weight.flatten()
+        good_contrib |= weights[:, i] > (1 / num_base_learners * np.sum(weights[:, i]))
         logging.info("Trained weights: {}".format(weights[:, i]))
+    logging.info(good_contrib)
+    logging.info("AVG AUC: {}".format(np.mean(aucs)))
+    logging.info("AVG LOSS: {}".format(np.mean(losses)))
+    logging.info("AVG ACCURACY: {}".format(np.mean(accs)))
     return weights, mus, sigmas
 
 
@@ -311,7 +326,7 @@ def ensemble_submissions2(submission_fnames, level2_models):
     test_preds = np.zeros(submissions[0].shape)
     for i, label in enumerate(LABEL_NAMES):
         logging.info("Testing XGB for label %s" % label)
-        X = test_X[:, :, i]
+        X = expit(test_X[:, :, i])
         logits = level2_models[i].predict_proba(X)[:, 1]
         test_preds[:, i] = logits
     logging.info("Stacked Test preds of shape: {}".format(test_preds.shape))

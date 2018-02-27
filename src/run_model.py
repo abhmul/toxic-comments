@@ -10,7 +10,7 @@ from torch.nn.functional import binary_cross_entropy_with_logits
 
 import pyjet.backend as J
 from models import load_model
-from pyjet.callbacks import ModelCheckpoint, Plotter, MetricLogger, ReduceLROnPlateau
+from pyjet.callbacks import ModelCheckpoint, Plotter, MetricLogger, ReduceLROnPlateau, LRScheduler
 from pyjet.data import DatasetGenerator
 from roc_auc_loss import ROC_AUC_loss
 from toxic_dataset import ToxicData
@@ -37,7 +37,10 @@ parser.add_argument('--postprocessing', default="none", help="Type of postproces
 parser.add_argument('--use_auc_loss', action="store_true", help="Uses auc loss instead of logloss")
 parser.add_argument('--num_completed', type=int, default=0, help="How many completed folds")
 parser.add_argument('--fixed_len', type=int, default=-1, help="Extract this length sequence from each sample")
-parser.add_argument('--patience', type=int, default=2, help="Patience before lowering the learning rate")
+schedules = parser.add_mutually_exclusive_group()
+schedules.add_argument("--schedule", default="none", help="Runs network with an lr schedule")
+schedules.add_argument('--patience', type=int, default=2, help="Patience before lowering the learning rate")
+
 args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -61,7 +64,21 @@ def pavel(preds):
     return np.power(preds, 1.4)
 
 
+# LR Schedules
+def wrn(epoch):
+    if epoch < 5:
+        return 0.01
+    if epoch < 15:
+        return 0.1
+    if epoch < 25:
+        return 0.01
+    if epoch < 35:
+        return 0.001
+    return 0.0001
+
+
 postprocessing = {pavel.__name__: pavel, none.__name__: none}
+schedules = {wrn.__name__: wrn}
 
 
 def roc_auc_score(preds, targets):
@@ -109,8 +126,10 @@ def train_model(model, train_id, train_data, val_data, epochs, batch_size,
     if optimizer_type == "sgd":
         logging.info("Using sgd")
         optimizer = optim.SGD(model.trainable_params(sgd=False), lr=0.01, momentum=0.9, nesterov=True)
-        # callbacks.append(LRScheduler(optimizer, lambda epoch: 0.01 if epoch < 6 else 0.001))
-        callbacks.append(ReduceLROnPlateau(optimizer, monitor='loss', monitor_val=True, patience=args.patience, verbose=1))
+        if args.schedule != "none":
+          callbacks.append(LRScheduler(optimizer, schedules[args.schedule]))
+        else:
+            callbacks.append(ReduceLROnPlateau(optimizer, monitor='loss', monitor_val=True, patience=args.patience, verbose=1))
     elif optimizer_type == "rmsprop":
         logging.info("Using rmsprop")
         optimizer = optim.RMSprop(model.trainable_params(sgd=False))
