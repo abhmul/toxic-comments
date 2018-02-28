@@ -423,6 +423,54 @@
       ]
     },
 
+    "1-combined": {
+      "embeddings_name": "combined_aug_germ",
+      "blocks": [
+        {
+          "residual_layers": [],
+          "nonresidual_layers": [
+            {"name": "conv", "input_size": 900, "output_size": 16, "kernel_size": 1},
+            {"name": "conv", "input_size": 16, "output_size": 16, "kernel_size": 3, "input_activation": "relu", "input_batchnorm": true}
+          ]
+        },
+
+        {"residual_layers": [
+          {"name": "conv", "input_size": 16, "output_size": 64, "kernel_size": 3, "input_activation": "relu",
+            "input_batchnorm": true, "dropout": 0.1},
+          {"name": "conv", "input_size": 64, "output_size": 64, "kernel_size": 3, "input_activation": "relu",
+            "input_batchnorm": true}],
+          "nonresidual_layers": [
+            {"name": "maxpool", "kernel_size": 3, "stride": 2}
+          ]
+        },
+
+        {"residual_layers": [
+          {"name": "conv", "input_size": 64, "output_size": 128, "kernel_size": 3, "input_activation": "relu",
+            "input_batchnorm": true, "dropout": 0.1},
+          {"name": "conv", "input_size": 128, "output_size": 128, "kernel_size": 3, "input_activation": "relu",
+            "input_batchnorm": true}],
+          "nonresidual_layers": [
+            {"name": "maxpool", "kernel_size": 3, "stride": 2}
+          ]
+        },
+
+        {"residual_layers": [
+          {"name": "conv", "input_size": 128, "output_size": 256, "kernel_size": 3, "input_activation": "relu",
+            "input_batchnorm": true, "dropout": 0.1},
+          {"name": "conv", "input_size": 256, "output_size": 256, "kernel_size": 3, "input_activation": "relu",
+            "input_batchnorm": true}],
+          "nonresidual_layers": [
+            {"name": "maxpool", "kernel_size": 3, "stride": 2}
+          ]
+        }
+      ],
+
+      "global_pool": {"name": "global-maxpool"},
+      "fc_layers": [
+        {"input_size": 256, "output_size": 6, "activation": "linear", "input_dropout": 0.5}
+      ]
+    },
+
     "0-char": {
       "num_features": 16,
       "vocab_size": 134,

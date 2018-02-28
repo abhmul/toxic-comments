@@ -66,13 +66,9 @@ def pavel(preds):
 
 # LR Schedules
 def wrn(epoch):
-    if epoch < 5:
+    if epoch < 40:
         return 0.01
-    if epoch < 15:
-        return 0.1
-    if epoch < 25:
-        return 0.01
-    if epoch < 35:
+    if epoch < 50:
         return 0.001
     return 0.0001
 
@@ -127,8 +123,10 @@ def train_model(model, train_id, train_data, val_data, epochs, batch_size,
         logging.info("Using sgd")
         optimizer = optim.SGD(model.trainable_params(sgd=False), lr=0.01, momentum=0.9, nesterov=True)
         if args.schedule != "none":
-          callbacks.append(LRScheduler(optimizer, schedules[args.schedule]))
+            logging.info("Using schedule %s" % args.schedule)
+            callbacks.append(LRScheduler(optimizer, schedules[args.schedule], verbose=1))
         else:
+            logging.info("Using LR Reducer with patience %s" % args.patience)
             callbacks.append(ReduceLROnPlateau(optimizer, monitor='loss', monitor_val=True, patience=args.patience, verbose=1))
     elif optimizer_type == "rmsprop":
         logging.info("Using rmsprop")
