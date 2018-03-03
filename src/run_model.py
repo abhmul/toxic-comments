@@ -68,7 +68,7 @@ def pavel(preds):
 def wrn(epoch):
     if epoch < 40:
         return 0.01
-    if epoch < 50:
+    if epoch < 60:
         return 0.001
     return 0.0001
 
