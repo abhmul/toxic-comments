@@ -6,8 +6,10 @@ def parse_model_id(model_id):
     parts = model_id.split("_")
     assert len(parts) in [2, 3], "model_id has %s pieces, should have 2 or 3" % len(parts)
     parsed = {"name": parts[0], "id": parts[1]}
-    if len(parts) == 3:
+    if len(parts) >= 3:
         parsed["seed"] = int(parts[2])
+    if len(parts) >= 4:
+        parsed["fold"] = int(parts[3][4:])
     return parsed
 
 
@@ -29,6 +31,13 @@ class Registry(object):
         with open(config_json, 'r') as config_json_file:
             self.model_configs = json.load(config_json_file)
         self.model_id_parts = [(name, id_key) for name in self.model_configs for id_key in self.model_configs[name]]
+
+    def __contains__(self, model_id):
+        parsed = parse_model_id(model_id)
+        if parsed[0] in self.model_configs:
+            if parsed[1] in self.model_configs[parsed[0]]:
+                return True
+        return False
 
     def get_model_constructor(self, model_name):
         return self.model_constructors[model_name]

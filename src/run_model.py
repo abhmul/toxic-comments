@@ -249,6 +249,7 @@ if __name__ == "__main__":
     if args.train:
         if args.kfold:
             model = kfold(toxic)
+
         else:
             model = train(toxic)
     if args.test:

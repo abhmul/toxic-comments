@@ -33,7 +33,7 @@ class ToxicData(object):
             labels = data["labels"]
         else:
             labels = None
-        return ids, NpDataset(text, labels)
+        return ids, NpDataset(text, labels, ids=ids)
 
     @staticmethod
     def save_submission(submission_fname, pred_ids, predictions):
@@ -159,15 +159,16 @@ class MultiNpDatasetAugmenter(Dataset):
         return train_data, val_data
 
     def kfold(self, k=True, shuffle=False, seed=None):
-        for train_split_a, train_split_b, val_split in self.original_dataset.get_kfold_indices(k, shuffle, seed):
+        for train_split, val_split in self.original_dataset.get_kfold_indices(k, shuffle, seed):
             train_data = MultiNpDatasetAugmenter(
-                *(NpDataset(np.concatenate([dataset.x[train_split_a], dataset.x[train_split_b]]),
-                          None if not self.output_labels else np.concatenate(
-                              [dataset.y[train_split_a], dataset.y[train_split_b]])) for dataset in self.datasets)
-            )
+                *(NpDataset(dataset.x[train_split],
+                            y=None if not dataset.has_labels else dataset.y[train_split],
+                            ids=None if not dataset.has_ids else dataset.ids[train_split])
+                  for dataset in self.datasets))
 
             val_data = NpDataset(self.original_dataset.x[val_split],
-                                 None if not self.output_labels else self.original_dataset.y[val_split])
+                                 y=None if not self.original_dataset.has_labels else self.original_dataset.y[val_split],
+                                 ids=None if not self.original_dataset.has_ids else self.original_dataset.ids[val_split])
             yield train_data, val_data
 
 
