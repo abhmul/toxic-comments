@@ -8,6 +8,7 @@ import copy
 
 from sklearn.model_selection import ParameterGrid
 from tqdm import trange
+from joblib import Parallel
 
 from pyjet.data import NpDataset
 from toxic_dataset import ToxicData, LABEL_NAMES
@@ -35,7 +36,7 @@ class EnsembleTrainer(ensemblers.Ensembler):
         self.constructor, self.submodel_names, self.params = ensemble_loading.get_ensemble_info(ensemble_id)
         self.grid = ParameterGrid(self.params)
         logging.info("Created a grid with parameters: {params}".format(params=self.params))
-        self.base_dataset = ensemble_utils.create_predictions(self.submodel_names, self.k, self.seed, pyjet=False)
+        self.base_dataset = ensemble_utils.create_predictions(self.submodel_names, self.k, self.seed)
         # Create the Ensembling model
         self.model = [[ensemblers.KFoldEnsembler(self.constructor(**param_set), self.k) for param_set in self.grid] for
                       _ in range(len(LABEL_NAMES))]
@@ -43,6 +44,9 @@ class EnsembleTrainer(ensemblers.Ensembler):
             *[self.model[label_num][0] for label_num in range(len(LABEL_NAMES))])
 
     def fit(self, *args, **kwargs):
+        scores = np.zeros(len(LABEL_NAMES))
+        rocs = np.zeros(len(LABEL_NAMES))
+        accs = np.zeros(len(LABEL_NAMES))
         for label_num in range(len(LABEL_NAMES)):
             logging.info("Training for label {label}".format(label=LABEL_NAMES[label_num]))
             subdataset = NpDataset(self.base_dataset.x[..., label_num], y=self.base_dataset.y[..., label_num])
@@ -51,23 +55,37 @@ class EnsembleTrainer(ensemblers.Ensembler):
             best_param_num = 0
             for param_num in trange(len(self.model[label_num])):
                 # This will also save the val_preds
-                self.model[label_num][param_num].fit(subdataset.x, subdataset.y)
+                self.model[label_num][param_num].fit(subdataset.x, subdataset.y, *args, **kwargs)
+
                 # Save the model if its our best so far
                 score = self.model[label_num][param_num].score(subdataset.x, subdataset.y)
+                print(self.grid[param_num])
                 if score < best_score:
                     logging.info("Score improved from {best_score} to {score}".format(best_score=best_score,
                                                                                       score=score))
                     self.best_model.models[label_num] = copy.deepcopy(self.model[label_num][param_num])
                     best_score = score
                     best_param_num = param_num
+                    # Calculate the stats
+                    scores[label_num] = best_score
+                    rocs[label_num] = self.best_model.models[label_num].roc_auc(subdataset.x, subdataset.y)
+                    accs[label_num] = self.best_model.models[label_num].accuracy(subdataset.x, subdataset.y)
+
                 # Remove the current model from memory
                 self.model[label_num][param_num] = None
             logging.info("Best score achieved is {best_score} with params {best_params}".format(best_score=best_score,
-                                                                                                best_params=self.grid[param_num]))
+                                                                                                best_params=self.grid[best_param_num]))
+            logging.info("Metrics are: Accuracy - {acc} --- ROC AUC - {roc}".format(acc=accs[label_num], roc=rocs[label_num]))
+
+            logging.info("C")
+        logging.info("Average Scores: LogLoss - {loss} --- Accuracy - {acc} --- ROC AUC - {roc}".format(loss=np.average(scores),
+                                                                                                        acc=np.average(accs),
+                                                                                                        roc=np.average(rocs)))
 
     def save_validation(self):
         val_preds = np.stack([model.val_preds for model in self.best_model.models], axis=-1)
-        ensemble_utils.save_predictions(val_preds, self.base_dataset.y, self.ensemble_id, safe_open_dir("../superlearner"))
+        logging.info("Saving validation preds with shape {}".format(val_preds.shape))
+        ensemble_utils.save_predictions(val_preds, self.base_dataset.y, self.ensemble_id, safe_open_dir("../superlearner_preds"))
 
     def predict(self, X, *args, **kwargs):
         return self.best_model.predict(X, *args, **kwargs)
@@ -102,8 +120,9 @@ class EnsembleTrainer(ensemblers.Ensembler):
 
 if __name__ == "__main__":
     args = parser.parse_args()
+    parallel = Parallel(args.kfold, backend="threading", verbose=0)
     trainer = EnsembleTrainer(args.ensemble_id, args.seed, args.kfold)
-    trainer.fit()
+    trainer.fit(parallel=parallel)
     trainer.save_model()
     trainer.save_validation()
     ids, test_preds = trainer.test()

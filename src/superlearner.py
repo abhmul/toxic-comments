@@ -50,7 +50,7 @@ def build_model(input_dim, output_dim):
     return model
 
 
-def load_ensemble_configs(ensemble_json="registry/ensembles.json"):
+def load_ensemble_configs(ensemble_json="registry/archived_ensembles2.json"):
     with open(ensemble_json, 'r') as ensemble_json_file:
         ensemble_dict = json.load(ensemble_json_file)
     return ensemble_dict

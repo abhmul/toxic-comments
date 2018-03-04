@@ -1,5 +1,7 @@
 import os
 import logging
+import sys
+sys.path.append('..')
 
 import torch
 import numpy as np
@@ -7,8 +9,9 @@ import numpy as np
 import pyjet.backend as J
 from pyjet.data import DatasetGenerator, NpDataset
 from toxic_dataset import ToxicData, LABEL_NAMES
+
 from models import load_model
-from ..registry import model_registry
+from registry import model_registry
 from file_utils import safe_open_dir
 
 
@@ -116,12 +119,11 @@ def load_predictions(model_name, pred_savedir, pred_labels=None):
 def save_predictions(predictions, pred_labels, model_name, pred_savedir):
     savepath = os.path.join(safe_open_dir(pred_savedir), model_name + ".npz")
     np.savez(savepath, X=predictions, Y=pred_labels)
+    logging.info("Saved validation preds to {}".format(savepath))
 
 
-def create_predictions(model_names, k, seed=7, savedir="../superlearner/", data_paths=tuple(), batch_size=32):
+def create_predictions(model_names, k, seed=7, savedir="../superlearner_preds/", data_paths=tuple(), batch_size=32):
     num_base_learners = len(model_names)
-    if pyjet:
-        assert num_base_learners == len(data_paths)
     logging.info("Using %s base learners" % num_base_learners)
     # Build the new train data to train the meta learner on
     predictions, pred_labels = None, None
